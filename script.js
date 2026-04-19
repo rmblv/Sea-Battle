@@ -1407,8 +1407,8 @@ function connectToServer() {
   statusIndicator.classList.remove('connected');
   statusText.textContent = 'Подключение...';
 
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `ws://${window.location.hostname}:8080`;
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${wsProtocol}//${window.location.host}`;
   
   socket = new WebSocket(wsUrl);
 

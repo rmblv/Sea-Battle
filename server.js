@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
 
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 
 const mimeTypes = {
   '.html': 'text/html',
@@ -318,4 +318,4 @@ wss.on('connection', (ws) => {
   });
 });
 
-console.log('WebSocket server started on port 3000');
+console.log(`WebSocket server started on port ${PORT}`);
