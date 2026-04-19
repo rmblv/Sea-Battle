@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Морской бой</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="bg"></div>
+
+<div id="mode-select">
+  <h1>МОРСКОЙ БОЙ</h1>
+  <div class="mode-buttons">
+    <button id="local-btn" class="mode-btn">Игра на одном устройстве</button>
+    <button id="online-btn" class="mode-btn">Игра по сети</button>
+  </div>
+</div>
+
+<div id="online-menu" style="display: none;">
+  <h1>ИГРА ПО СЕТИ</h1>
+  <div class="online-options">
+    <button id="create-room-btn" class="mode-btn">Создать игру</button>
+    <div class="join-section">
+      <input type="text" id="room-id-input" placeholder="Введите ID комнаты" maxlength="6">
+      <button id="join-room-btn" class="mode-btn">Присоединиться</button>
+    </div>
+  </div>
+  <button id="back-to-menu-btn" class="back-btn">Назад</button>
+</div>
+
+<div id="waiting-room" style="display: none;">
+  <h1 id="waiting-title">Ожидание игрока...</h1>
+  <div class="room-info">
+    <p>ID комнаты:</p>
+    <div class="room-id-display">
+      <span id="room-id-text">------</span>
+      <button id="copy-room-id" class="copy-btn">Копировать</button>
+    </div>
+  </div>
+  <div class="waiting-status">
+    <div id="status-indicator" class="status-dot"></div>
+    <span id="status-text">Подключение...</span>
+  </div>
+  <button id="cancel-wait-btn" class="back-btn">Отмена</button>
+</div>
+
+<div id="intro"></div>
+
+<div id="viewport">
+  <div id="scene">
+    <div id="game-container" style="display: none;">
+      <div class="boards-wrapper">
+        <div class="board-container">
+          <div class="player-label my-board-label" id="player1-my-label" style="display:none;">ВЫ</div>
+          <h2 id="player1-title">Игрок 1</h2>
+          <div id="board1" class="board"></div>
+        </div>
+        <div class="board-container">
+          <div class="player-label enemy-board-label" id="player2-enemy-label" style="display:none;">СОПЕРНИК</div>
+          <h2 id="player2-title">Игрок 2</h2>
+          <div id="board2" class="board"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="video-popup">
+  <video id="sink-video" src="sink_mus_txt.mp4"></video>
+</div>
+
+<audio id="hit-sound" src="hit.mp3"></audio>
+<audio id="miss-sound" src="miss.mp3"></audio>
+
+<div id="disconnect-overlay" style="display: none;">
+  <div class="disconnect-message">
+    <h2>Соперник отключился</h2>
+    <p id="disconnect-text">Ожидание переподключения...</p>
+    <button id="reconnect-btn" style="display: none;">Выйти в меню</button>
+  </div>
+</div>
+
+<div id="rematch-overlay" style="display: none;">
+  <div class="rematch-message">
+    <h2 id="rematch-title">Реванш?</h2>
+    <p id="rematch-text">Соперник предлагает реванш</p>
+    <div class="rematch-buttons">
+      <button id="accept-rematch-btn" class="mode-btn">Принять</button>
+      <button id="decline-rematch-btn" class="back-btn">Отказаться</button>
+    </div>
+  </div>
+</div>
+
+    <script src="script.js"></script>
+</body>
+</html>

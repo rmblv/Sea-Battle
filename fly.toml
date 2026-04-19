@@ -1,0 +1,10 @@
+app = "seabattle"
+[build]
+  builder = "docker"
+[[services]]
+  http_checks = []
+  internal_port = 8080
+  processes = ["app"]
+  protocol = "tcp"
+  [[services.ports]]
+    port = "80"

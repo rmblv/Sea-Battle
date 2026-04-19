@@ -1,0 +1,802 @@
+body {
+  margin: 0;
+  background: black;
+  overflow: hidden;
+}
+
+/* Экран */
+#viewport {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Сцена */
+#scene {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('map.webp') no-repeat center;
+  background-size: cover;
+  background-color: black;
+  z-index: -1;
+}
+
+#intro {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: url('map.webp') no-repeat center center fixed;
+  background-size: cover;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  color: white;
+  text-align: center;
+}
+
+#intro h1 {
+  font-family: Montserrat;
+  font-size: clamp(36px, 8vw, 72px);
+  margin-bottom: 40px;
+  text-shadow: 2px 2px 8px black;
+}
+
+#start-btn {
+  font-family: Montserrat;
+  padding: 20px 40px;
+  font-size: clamp(24px, 4vw, 32px);
+  background: #4e1a1c;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 2px 2px 12px black;
+  transition: transform 0.2s;
+}
+
+#start-btn:hover {
+  transform: scale(1.1);
+}
+
+/* Контент внутри */
+#game-container {
+  width: 70%;
+  max-width: 1400px;
+  min-width: auto;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.boards-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  gap: 60px;
+}
+
+.board-container {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.board-container h2 {
+  font-family: Montserrat;
+  color: white;
+  margin-bottom: 15px;
+  font-size: clamp(18px, 3vw, 28px);
+  text-shadow: 2px 2px 4px black;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 8px 20px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  gap: 2px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px;
+  border-radius: 8px;
+  position: relative;
+}
+
+.cell {
+  border: 1px solid #333;
+  cursor: pointer;
+  position: relative;
+  background-image: url('box.webp');
+  background-size: cover;
+  background-position: center;
+  aspect-ratio: 1 / 1;
+}
+
+.cell--title {
+  border: none;
+  background-image: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: Montserrat;
+  font-size: clamp(12px, 2vw, 32px);
+  color: #edc88b;
+  cursor: default;
+}
+
+.cell--o {
+  border: none;
+  background-image: none;
+  cursor: default;
+}
+
+.cell.hit {
+  animation: explode 0.5s ease-out;
+}
+
+.cell.miss {
+  background-size: cover;
+  background-position: center;
+}
+
+@keyframes explode {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+#video-popup {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.8);
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+#video-popup video {
+  max-width: 80%;
+  max-height: 80%;
+}
+
+.board-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: rgb(178, 135, 41);
+  font-size: clamp(16px, 3vw, 24px);
+  font-weight: bold;
+  padding: 20px 40px;
+  border-radius: 10px;
+  border: 2px solid rgb(178, 135, 41);
+  text-align: center;
+  z-index: 100;
+  white-space: nowrap;
+  font-family: Montserrat;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  animation: fadeIn 0.5s ease;
+  pointer-events: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+#board1, #board2 {
+  position: relative;
+  transition: box-shadow 0.3s ease;
+  width: 100%;
+}
+
+.active-board {
+  box-shadow: 0 0 0 3px rgb(178, 135, 41), 0 0 0 6px rgba(255, 215, 0, 0.5);
+  border-radius: 8px;
+}
+
+/* Стили для формы ввода имен */
+#intro > div {
+  animation: zoomIn 0.5s ease;
+  width: min(90%, 500px);
+  padding: 40px;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 15px;
+  border: 2px solid rgb(178, 135, 41);
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.player-input {
+  margin-bottom: 20px;
+}
+
+.player-input label {
+  display: block;
+  color: white;
+  font-family: Montserrat;
+  font-size: clamp(14px, 2.5vw, 18px);
+  margin-bottom: 8px;
+}
+
+.player-input input {
+  padding: 12px;
+  font-size: clamp(14px, 2.5vw, 16px);
+  border-radius: 5px;
+  border: 2px solid rgb(178, 135, 41);
+  background-color: rgba(255, 255, 255, 0.9);
+  width: 100%;
+  max-width: 300px;
+  font-family: Montserrat;
+}
+
+/* Медиа-запросы для адаптации отступов */
+@media (max-width: 1200px) {
+  #game-container {
+    width: 75%;
+  }
+  
+  .boards-wrapper {
+    gap: 50px;
+  }
+}
+
+@media (max-width: 1024px) {
+  #game-container {
+    width: 80%;
+  }
+  
+  .boards-wrapper {
+    gap: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  #game-container {
+    width: 85%;
+  }
+  
+  .boards-wrapper {
+    gap: 30px;
+  }
+}
+
+@media (max-width: 600px) {
+  #game-container {
+    width: 90%;
+  }
+  
+  .boards-wrapper {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .board-container {
+    width: 100%;
+    max-width: 400px;
+  }
+}
+
+/* Для очень маленьких экранов */
+@media (max-width: 400px) {
+  #game-container {
+    width: 95%;
+  }
+  
+  .boards-wrapper {
+    gap: 15px;
+  }
+  
+  .board-container h2 {
+    font-size: 16px;
+    padding: 5px 15px;
+  }
+}
+
+/* Для очень широких экранов */
+@media (min-width: 1920px) {
+  #game-container {
+    width: 60%;
+  }
+  
+  .boards-wrapper {
+    gap: 80px;
+  }
+}
+
+/* Исправление для правильного отображения background */
+@media (max-aspect-ratio: 16/9) {
+  #bg {
+    background-size: cover;
+  }
+}
+
+@media (min-aspect-ratio: 16/9) {
+  #bg {
+    background-size: contain;
+  }
+}
+
+.ship-preview {
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.ship-placed {
+  transition: background-color 0.3s;
+  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+#turn-message {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 15px 30px;
+  border-radius: 50px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 20px;
+  font-weight: bold;
+  z-index: 1000;
+  border: 2px solid rgb(178, 135, 41);
+  transition: opacity 0.3s;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.player-input {
+  margin: 15px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.player-input label {
+  min-width: 150px;
+  color: white;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.player-input input {
+  padding: 8px 12px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.player-input select {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 16px;
+}
+
+/* Стили для режима расстановки кораблей */
+.ship-preview {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  animation: previewShip 0.3s ease;
+}
+
+@keyframes previewShip {
+  0% { transform: rotate(0deg); opacity: 0; }
+  50% { transform: rotate(180deg); opacity: 1; }
+  100% { transform: rotate(0deg); opacity: 1; }
+}
+
+.ship-preview.preview-vertical {
+  animation: previewShipVertical 0.3s ease;
+}
+
+@keyframes previewShipVertical {
+  0% { transform: rotate(90deg); opacity: 0; }
+  50% { transform: rotate(270deg); opacity: 1; }
+  100% { transform: rotate(90deg); opacity: 1; }
+}
+
+.ship-preview.valid-placement {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  opacity: 0.8;
+  filter: brightness(1.1);
+  box-shadow: inset 0 0 0 2px #4CAF50, 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+.ship-preview.invalid-placement {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  opacity: 0.6;
+  filter: brightness(0.9);
+  box-shadow: inset 0 0 0 2px #F44336, 0 0 10px rgba(244, 67, 54, 0.5);
+}
+
+.ship-placed {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.3);
+  animation: placeShip 0.3s ease;
+}
+
+.ship-placed.ship-vertical {
+  animation: placeShipVertical 0.3s ease;
+}
+
+@keyframes placeShip {
+  0% { transform: rotate(0deg); opacity: 0; }
+  50% { transform: rotate(180deg); opacity: 1; }
+  100% { transform: rotate(0deg); opacity: 1; }
+}
+
+.ship-placed.ship-vertical {
+  animation: placeShipVertical 0.3s ease;
+}
+
+@keyframes placeShipVertical {
+  0% { transform: rotate(90deg); opacity: 0; }
+  50% { transform: rotate(270deg); opacity: 1; }
+  100% { transform: rotate(90deg); opacity: 1; }
+}
+
+@keyframes placeShipVertical {
+  0% { transform: rotate(90deg) scale(0.8); opacity: 0.5; }
+  100% { transform: rotate(90deg) scale(1); opacity: 1; }
+}
+
+/* Анимация появления доски */
+.board-container {
+  transition: opacity 0.3s ease;
+}
+
+/* Улучшенная информационная панель */
+#placement-info {
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(-50%); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-52%); }
+  20%, 40%, 60%, 80% { transform: translateX(-48%); }
+}
+
+/* Онлайн режим */
+#mode-select {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: url('map.webp') no-repeat center center fixed;
+  background-size: cover;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+#mode-select h1 {
+  font-family: Montserrat;
+  font-size: clamp(36px, 8vw, 72px);
+  margin-bottom: 60px;
+  color: white;
+  text-shadow: 2px 2px 8px black;
+}
+
+.mode-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mode-btn {
+  font-family: Montserrat;
+  padding: 20px 50px;
+  font-size: clamp(20px, 4vw, 28px);
+  background: #4e1a1c;
+  color: white;
+  border: 2px solid rgb(178, 135, 41);
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 2px 2px 12px black;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.mode-btn:hover {
+  transform: scale(1.05);
+  background: #6b2224;
+}
+
+#online-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: url('map.webp') no-repeat center center fixed;
+  background-size: cover;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+#online-menu h1 {
+  font-family: Montserrat;
+  font-size: clamp(32px, 6vw, 56px);
+  margin-bottom: 50px;
+  color: white;
+  text-shadow: 2px 2px 8px black;
+}
+
+.online-options {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  align-items: center;
+}
+
+.join-section {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+#room-id-input {
+  padding: 15px 20px;
+  font-size: clamp(18px, 3vw, 24px);
+  border-radius: 10px;
+  border: 2px solid rgb(178, 135, 41);
+  background: rgba(255, 255, 255, 0.9);
+  font-family: Montserrat;
+  text-transform: uppercase;
+  text-align: center;
+  width: 180px;
+}
+
+#room-id-input::placeholder {
+  font-size: clamp(14px, 2vw, 18px);
+}
+
+.back-btn {
+  font-family: Montserrat;
+  padding: 15px 40px;
+  font-size: clamp(16px, 3vw, 22px);
+  background: transparent;
+  color: white;
+  border: 2px solid white;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 40px;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+#waiting-room {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: url('map.webp') no-repeat center center fixed;
+  background-size: cover;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+#waiting-room h1 {
+  font-family: Montserrat;
+  font-size: clamp(28px, 5vw, 48px);
+  margin-bottom: 40px;
+  color: white;
+  text-shadow: 2px 2px 8px black;
+}
+
+.room-info {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 30px 50px;
+  border-radius: 15px;
+  border: 2px solid rgb(178, 135, 41);
+  text-align: center;
+}
+
+.room-info p {
+  color: white;
+  font-family: Montserrat;
+  font-size: clamp(16px, 3vw, 20px);
+  margin-bottom: 15px;
+}
+
+.room-id-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+#room-id-text {
+  font-family: Montserrat;
+  font-size: clamp(32px, 6vw, 48px);
+  color: rgb(178, 135, 41);
+  font-weight: bold;
+  letter-spacing: 5px;
+}
+
+.copy-btn {
+  font-family: Montserrat;
+  padding: 10px 20px;
+  font-size: clamp(14px, 2vw, 16px);
+  background: rgb(178, 135, 41);
+  color: black;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.copy-btn:hover {
+  transform: scale(1.05);
+}
+
+.copy-btn.copied {
+  background: #4CAF50;
+}
+
+.waiting-status {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: 40px;
+  color: white;
+  font-family: Montserrat;
+  font-size: clamp(16px, 3vw, 20px);
+}
+
+.status-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #F44336;
+  animation: pulse 1.5s infinite;
+}
+
+.status-dot.connected {
+  background: #4CAF50;
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Оверлеи отключения и реванша */
+#disconnect-overlay, #rematch-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.disconnect-message, .rematch-message {
+  background: rgba(0, 0, 0, 0.9);
+  padding: 40px 60px;
+  border-radius: 20px;
+  border: 3px solid rgb(178, 135, 41);
+  text-align: center;
+}
+
+.disconnect-message h2, .rematch-message h2 {
+  font-family: Montserrat;
+  font-size: clamp(24px, 5vw, 36px);
+  color: white;
+  margin-bottom: 20px;
+}
+
+.disconnect-message p, .rematch-message p {
+  font-family: Montserrat;
+  font-size: clamp(16px, 3vw, 20px);
+  color: #aaa;
+  margin-bottom: 30px;
+}
+
+.rematch-buttons {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+/* Стили для онлайн игры */
+.board-container .player-label {
+  font-family: Montserrat;
+  color: #aaa;
+  font-size: clamp(12px, 2vw, 14px);
+  margin-bottom: 5px;
+}
+
+.board-container .my-board-label {
+  color: #4CAF50;
+}
+
+.board-container .enemy-board-label {
+  color: #F44336;
+}
