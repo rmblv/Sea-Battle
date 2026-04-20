@@ -255,6 +255,11 @@ function restoreMovesFromState(moves) {
   console.log('Moves restored from localStorage');
 }
 
+// Алиас для обратной совместимости
+function applyAllMoves(moves) {
+  restoreMovesFromState(moves);
+}
+
 function setupVideoSkippable(videoElement, popupElement) {
   videoElement.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1940,7 +1945,7 @@ function handleServerMessage(message) {
       roomId = message.roomId;
       myPlayerNum = message.playerNum;
       isOnlineMode = true;
-      isGameModeSelected = true;  // Отмечаем, что режим выбран
+      isGameModeSelected = true;
       document.getElementById('disconnect-overlay').style.display = 'none';
       document.getElementById('waiting-room').style.display = 'none';
       
@@ -1950,49 +1955,34 @@ function handleServerMessage(message) {
         currentPlayer = message.currentTurn;
         isMyTurn = myPlayerNum === currentPlayer;
         
-        // Создаем доски если их нет
+        // Создаем доски
         if (board1Cells.length === 0) {
           createBoard(board1, board1Cells);
           createBoard(board2, board2Cells);
         }
         
+        // Восстанавливаем корабли ОБОИХ игроков
         if (message.ships) {
-          // Восстанавливаем СВОИ корабли
-          if (myPlayerNum === 1) {
+          if (message.ships[0]) {
             applyReceivedShips(message.ships[0], board1Cells, ships1, board1HitImage);
-          } else {
-            applyReceivedShips(message.ships[1], board2Cells, ships2, board2HitImage);
           }
-          
-          // Восстанавливаем корабли СОПЕРНИКА
-          if (myPlayerNum === 1 && message.ships[1]) {
+          if (message.ships[1]) {
             applyReceivedShips(message.ships[1], board2Cells, ships2, board2HitImage);
-          } else if (myPlayerNum === 2 && message.ships[0]) {
-            applyReceivedShips(message.ships[0], board1Cells, ships1, board1HitImage);
           }
         }
         
-        // Восстанавливаем ходы из localStorage (свои ходы)
-        const savedState = loadGameState();
-        if (savedState && savedState.moves) {
-          restoreMovesFromState(savedState.moves);
-        }
-        
-        // Восстанавливаем ходы СОПЕРНИКА из сообщения (если сервер их отправляет)
+        // Восстанавливаем ВСЕ ходы с сервера (и свои, и соперника)
         if (message.moves) {
-          restoreMovesFromState(message.moves);
+          applyAllMoves(message.moves);
         }
         
-        console.log('Game restored:', {
-          myPlayerNum,
-          currentPlayer,
-          isMyTurn,
-          ships1: ships1.length,
-          ships2: ships2.length,
-          savedState: !!savedState
-        });
+        // Обновляем счетчик кораблей
+        updateShipsCounter();
         
+        // Запускаем игру
         startOnlineGame();
+        
+        console.log('Game fully restored!');
       } else {
         // Игра еще не началась - фаза расстановки
         gameStarted = false;

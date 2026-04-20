@@ -60,6 +60,10 @@ function createRoom(playerName) {
     id: roomId,
     players: [],
     ships: [null, null],
+    moves: {
+      board1: { hits: [], misses: [] },
+      board2: { hits: [], misses: [] }
+    },
     gameStarted: false,
     currentTurn: 1
   };
@@ -150,7 +154,8 @@ wss.on('connection', (ws) => {
                 playerNum: result.playerNum,
                 gameStarted: currentRoom.gameStarted,
                 currentTurn: currentRoom.currentTurn,
-                ships: currentRoom.ships
+                ships: currentRoom.ships,
+                moves: currentRoom.moves
               }));
               
               // Уведомить оппонента о возвращении
@@ -253,6 +258,14 @@ wss.on('connection', (ws) => {
 
         case 'player-move': {
           if (!currentRoom || !currentPlayer) return;
+          
+          // Сохраняем ход на сервере
+          const boardKey = currentPlayer.playerNum === 1 ? 'board1' : 'board2';
+          if (message.hit) {
+            currentRoom.moves[boardKey].hits.push({ x: message.x, y: message.y });
+          } else {
+            currentRoom.moves[boardKey].misses.push({ x: message.x, y: message.y });
+          }
           
           const opponent = getOpponent(currentRoom, currentPlayer.playerNum);
           if (opponent && opponent.ws && opponent.ws.readyState === WebSocket.OPEN) {
