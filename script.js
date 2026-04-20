@@ -1971,16 +1971,16 @@ function handleServerMessage(message) {
           }
         }
         
-        // Восстанавливаем ВСЕ ходы с сервера (и свои, и соперника)
-        if (message.moves) {
-          applyAllMoves(message.moves);
-        }
-        
         // Обновляем счетчик кораблей
         updateShipsCounter();
         
-        // Запускаем игру
+        // Запускаем игру (это скроет корабли)
         startOnlineGame();
+        
+        // Восстанавливаем ВСЕ ходы ПОСЛЕ startOnlineGame (чтобы не затёрлись)
+        if (message.moves) {
+          applyAllMoves(message.moves);
+        }
         
         console.log('Game fully restored!');
       } else {
