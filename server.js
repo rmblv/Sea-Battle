@@ -70,18 +70,18 @@ function createRoom(playerName) {
 function joinRoom(roomId, playerName) {
   const room = rooms.get(roomId);
   if (!room) return { error: 'Комната не найдена' };
-  if (room.gameStarted) return { error: 'Игра уже началась' };
   
-  // Проверка на переподключение
+  // Проверка на переподключение (приоритетнее проверки gameStarted)
   const disconnectedPlayer = room.players.find(p => 
     p.disconnectedAt && (Date.now() - p.disconnectedAt < 5 * 60 * 1000)
   );
   
   if (disconnectedPlayer) {
-    // Разрешаем переподключение
+    // Разрешаем переподключение в любом состоянии игры
     return { room, playerNum: disconnectedPlayer.playerNum, reconnect: true };
   }
   
+  if (room.gameStarted) return { error: 'Игра уже началась' };
   if (room.players.length >= 2) return { error: 'Комната полна' };
   return { room, playerNum: 2 };
 }
@@ -150,7 +150,7 @@ wss.on('connection', (ws) => {
                 playerNum: result.playerNum,
                 gameStarted: currentRoom.gameStarted,
                 currentTurn: currentRoom.currentTurn,
-                shipsReady: currentRoom.ships
+                ships: currentRoom.ships
               }));
               
               // Уведомить оппонента о возвращении

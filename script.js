@@ -276,9 +276,11 @@ function showPlacementInfo(playerNumber) {
     infoDiv.style.position = 'fixed';
     infoDiv.style.bottom = '100px';
     if (playerNumber === 1) {
-      infoDiv.style.left = '25%';
+      infoDiv.style.right = '25%';
+      infoDiv.style.left = 'auto';
     } else {
-      infoDiv.style.left = '75%';
+      infoDiv.style.left = '25%';
+      infoDiv.style.right = 'auto';
     }
     infoDiv.style.transform = 'translateX(-50%)';
     infoDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
@@ -1620,16 +1622,45 @@ function handleServerMessage(message) {
         currentPlayer = message.currentTurn;
         isMyTurn = myPlayerNum === currentPlayer;
         
-        if (message.shipsReady) {
+        // Создаем доски если их нет
+        if (board1Cells.length === 0) {
+          createBoard(board1, board1Cells);
+          createBoard(board2, board2Cells);
+        }
+        
+        if (message.ships) {
+          // Восстанавливаем корабли
           if (myPlayerNum === 1) {
-            applyReceivedShips(message.shipsReady[1], board2Cells, ships2, board2HitImage);
+            // Я игрок 1 - мои корабли в ships[0], корабли противника в ships[1]
+            applyReceivedShips(message.ships[0], board1Cells, ships1, board1HitImage);
           } else {
-            applyReceivedShips(message.shipsReady[0], board1Cells, ships1, board1HitImage);
+            // Я игрок 2 - мои корабли в ships[1], корабли противника в ships[0]
+            applyReceivedShips(message.ships[1], board2Cells, ships2, board2HitImage);
           }
         }
         
         startOnlineGame();
       } else {
+        // Игра еще не началась - фаза расстановки
+        gameStarted = false;
+        isSetupPhase = true;
+        currentSetupPlayer = myPlayerNum;
+        
+        // Создаем доски если их нет
+        if (board1Cells.length === 0) {
+          createBoard(board1, board1Cells);
+          createBoard(board2, board2Cells);
+        }
+        
+        // Если корабли уже расставлены - загружаем их
+        if (message.ships && message.ships[myPlayerNum - 1]) {
+          if (myPlayerNum === 1) {
+            applyReceivedShips(message.ships[0], board1Cells, ships1, board1HitImage);
+          } else {
+            applyReceivedShips(message.ships[1], board2Cells, ships2, board2HitImage);
+          }
+        }
+        
         startOnlineGameSetupForRematch();
       }
       break;
@@ -1994,7 +2025,6 @@ function showOnlineWin(winnerName) {
   
   const isWinner = (myPlayerNum === 1 && winnerName === player1Name) || 
                  (myPlayerNum === 2 && winnerName === player2Name);
-  const loserName = isWinner ? (myPlayerNum === 1 ? player2Name : player1Name) : (myPlayerNum === 1 ? player1Name : player2Name);
   
   const overlay = document.createElement('div');
   overlay.classList.add('board-overlay');
@@ -2005,11 +2035,11 @@ function showOnlineWin(winnerName) {
   overlay.style.transform = 'translate(-50%, -50%)';
   
   if (isWinner) {
-    overlay.innerHTML = `🏆 ПОБЕДА! ${winnerName} победил! 🏆<br><br><button id="rematch-btn" style="padding: 10px 20px; font-size: 18px; cursor: pointer; background: gold; border: none; border-radius: 5px; color: black;">Предложить реванш</button>`;
+    overlay.innerHTML = `🏆 Поздравляем, Вы победили! 🏆<br><br><button id="rematch-btn" style="padding: 10px 20px; font-size: 18px; cursor: pointer; background: gold; border: none; border-radius: 5px; color: black;">Предложить реванш</button>`;
     overlay.style.color = 'rgb(178, 135, 41)';
     overlay.style.border = '2px solid rgb(178, 135, 41)';
   } else {
-    overlay.innerHTML = `💀 ПОРАЖЕНИЕ! ${loserName} победил! 💀<br><br><button id="rematch-btn" style="padding: 10px 20px; font-size: 18px; cursor: pointer; background: #444; color: white; border: none; border-radius: 5px;">Предложить реванш</button>`;
+    overlay.innerHTML = `💀 Поражение. ${winnerName} победил. 💀<br><br><button id="rematch-btn" style="padding: 10px 20px; font-size: 18px; cursor: pointer; background: #444; color: white; border: none; border-radius: 5px;">Предложить реванш</button>`;
     overlay.style.color = '#ff4444';
     overlay.style.border = '2px solid #ff4444';
   }
@@ -2024,7 +2054,7 @@ function showOnlineWin(winnerName) {
     this.style.cursor = 'default';
   });
 
-  showTurnMessage(isWinner ? `🏆 ${winnerName} победил! 🏆` : `💀 ${loserName} победил! 💀`);
+  showTurnMessage(isWinner ? `🏆 Поздравляем, Вы победили! 🏆` : `💀 Поражение. ${winnerName} победил. 💀`);
 }
 
 function handleGameOver(winnerName) {
