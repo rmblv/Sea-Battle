@@ -274,8 +274,12 @@ function showPlacementInfo(playerNumber) {
     infoDiv = document.createElement('div');
     infoDiv.id = 'placement-info';
     infoDiv.style.position = 'fixed';
-    infoDiv.style.bottom = '100px'; // Переместили вниз
-    infoDiv.style.left = '50%';
+    infoDiv.style.bottom = '100px';
+    if (playerNumber === 1) {
+      infoDiv.style.left = '25%';
+    } else {
+      infoDiv.style.left = '75%';
+    }
     infoDiv.style.transform = 'translateX(-50%)';
     infoDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
     infoDiv.style.color = 'white';
@@ -1594,11 +1598,46 @@ function handleServerMessage(message) {
       break;
 
     case 'game-over':
-      handleGameOver(message.winner);
+      const winnerName = message.winnerPlayerNum === 1 ? player1Name : player2Name;
+      showOnlineWin(winnerName);
       break;
 
     case 'player-disconnected':
-      showDisconnectOverlay();
+      showDisconnectOverlay(message.disconnectedAt);
+      break;
+
+    case 'room-reconnected':
+      console.log('room-reconnected received:', message);
+      roomId = message.roomId;
+      myPlayerNum = message.playerNum;
+      isOnlineMode = true;
+      document.getElementById('disconnect-overlay').style.display = 'none';
+      document.getElementById('waiting-room').style.display = 'none';
+      
+      if (message.gameStarted) {
+        gameStarted = true;
+        gameActive = true;
+        currentPlayer = message.currentTurn;
+        isMyTurn = myPlayerNum === currentPlayer;
+        
+        if (message.shipsReady) {
+          if (myPlayerNum === 1) {
+            applyReceivedShips(message.shipsReady[1], board2Cells, ships2, board2HitImage);
+          } else {
+            applyReceivedShips(message.shipsReady[0], board1Cells, ships1, board1HitImage);
+          }
+        }
+        
+        startOnlineGame();
+      } else {
+        startOnlineGameSetupForRematch();
+      }
+      break;
+
+    case 'player-reconnected':
+      console.log('Player reconnected:', message);
+      document.getElementById('disconnect-overlay').style.display = 'none';
+      showTurnMessage(`${message.playerName || 'Соперник'} вернулся в игру!`);
       break;
 
     case 'rematch-request':
@@ -1895,6 +1934,10 @@ function handleOpponentMove(message) {
     cell.style.backgroundImage = `url('${missImg}')`;
     missSound.currentTime = 0;
     missSound.play();
+    
+    cell.classList.add('miss-highlight');
+    setTimeout(() => cell.classList.remove('miss-highlight'), 3000);
+    
     showTurnMessage('Соперник промахнулся! Ваш ход');
     isMyTurn = true;
     highlightOnlineBoard();
@@ -1988,17 +2031,48 @@ function handleGameOver(winnerName) {
   showOnlineWin(winnerName);
 }
 
-function showDisconnectOverlay() {
+function showDisconnectOverlay(disconnectedAt) {
   const overlay = document.getElementById('disconnect-overlay');
   overlay.style.display = 'flex';
   
+  const timerEl = document.getElementById('reconnect-timer');
   const reconnectBtn = document.getElementById('reconnect-btn');
-  reconnectBtn.style.display = 'block';
   
+  let countdownInterval;
+  
+  const updateTimer = () => {
+    if (!disconnectedAt) {
+      timerEl.textContent = '';
+      return;
+    }
+    
+    const elapsed = Date.now() - disconnectedAt;
+    const remaining = Math.max(0, 5 * 60 * 1000 - elapsed);
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    
+    if (remaining <= 0) {
+      timerEl.textContent = 'Время вышло';
+      clearInterval(countdownInterval);
+      reconnectBtn.style.display = 'block';
+      reconnectBtn.textContent = 'Выйти в меню';
+      reconnectBtn.onclick = () => {
+        overlay.style.display = 'none';
+        document.getElementById('mode-select').style.display = 'flex';
+        resetGameState();
+      };
+    } else {
+      timerEl.textContent = `У вас есть ${minutes}:${seconds.toString().padStart(2, '0')} чтобы вернуться`;
+    }
+  };
+  
+  updateTimer();
+  countdownInterval = setInterval(updateTimer, 1000);
+  
+  reconnectBtn.style.display = 'block';
+  reconnectBtn.textContent = 'Ждать';
   reconnectBtn.onclick = () => {
-    overlay.style.display = 'none';
-    document.getElementById('mode-select').style.display = 'flex';
-    resetGameState();
+    clearInterval(countdownInterval);
   };
 }
 

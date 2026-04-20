@@ -70,8 +70,19 @@ function createRoom(playerName) {
 function joinRoom(roomId, playerName) {
   const room = rooms.get(roomId);
   if (!room) return { error: 'Комната не найдена' };
-  if (room.players.length >= 2) return { error: 'Комната полна' };
   if (room.gameStarted) return { error: 'Игра уже началась' };
+  
+  // Проверка на переподключение
+  const disconnectedPlayer = room.players.find(p => 
+    p.disconnectedAt && (Date.now() - p.disconnectedAt < 5 * 60 * 1000)
+  );
+  
+  if (disconnectedPlayer) {
+    // Разрешаем переподключение
+    return { room, playerNum: disconnectedPlayer.playerNum, reconnect: true };
+  }
+  
+  if (room.players.length >= 2) return { error: 'Комната полна' };
   return { room, playerNum: 2 };
 }
 
@@ -124,9 +135,42 @@ wss.on('connection', (ws) => {
             return;
           }
           currentRoom = result.room;
+          
+          if (result.reconnect) {
+            // Переподключение игрока
+            const disconnectedPlayer = currentRoom.players.find(p => p.disconnectedAt);
+            if (disconnectedPlayer) {
+              disconnectedPlayer.ws = ws;
+              disconnectedPlayer.disconnectedAt = null;
+              currentPlayer = disconnectedPlayer;
+              
+              ws.send(JSON.stringify({
+                type: 'room-reconnected',
+                roomId: message.roomId,
+                playerNum: result.playerNum,
+                gameStarted: currentRoom.gameStarted,
+                currentTurn: currentRoom.currentTurn,
+                shipsReady: currentRoom.ships
+              }));
+              
+              // Уведомить оппонента о возвращении
+              const opponent = getOpponent(currentRoom, currentPlayer.playerNum);
+              if (opponent && opponent.ws && opponent.ws.readyState === WebSocket.OPEN) {
+                opponent.ws.send(JSON.stringify({
+                  type: 'player-reconnected',
+                  playerNum: currentPlayer.playerNum,
+                  playerName: currentPlayer.name
+                }));
+              }
+              
+              console.log(`Player ${currentPlayer.playerNum} reconnected to room ${message.roomId}`);
+              break;
+            }
+          }
+          
           currentPlayer = {
             ws,
-            playerNum: 2,
+            playerNum: result.playerNum,
             name: message.playerName
           };
           result.room.players.push(currentPlayer);
@@ -245,7 +289,7 @@ wss.on('connection', (ws) => {
           if (opponent && opponent.ws && opponent.ws.readyState === WebSocket.OPEN) {
             opponent.ws.send(JSON.stringify({
               type: 'game-over',
-              winner: message.winner
+              winnerPlayerNum: currentPlayer.playerNum
             }));
           }
           break;
@@ -301,21 +345,34 @@ wss.on('connection', (ws) => {
     if (currentRoom && currentPlayer) {
       console.log(`Player ${currentPlayer.playerNum} disconnected from room ${currentRoom.id}`);
       
+      // Отмечаем игрока как отключившегося
+      currentPlayer.disconnectedAt = Date.now();
+      
       const opponent = getOpponent(currentRoom, currentPlayer.playerNum);
       if (opponent && opponent.ws && opponent.ws.readyState === WebSocket.OPEN) {
         opponent.ws.send(JSON.stringify({
           type: 'player-disconnected',
-          playerNum: currentPlayer.playerNum
+          playerNum: currentPlayer.playerNum,
+          disconnectedAt: currentPlayer.disconnectedAt
         }));
-      }
-      
-      const remainingPlayers = currentRoom.players.filter(p => p.ws.readyState === WebSocket.OPEN);
-      if (remainingPlayers.length === 0) {
-        rooms.delete(currentRoom.id);
-        console.log(`Room ${currentRoom.id} deleted (empty)`);
       }
     }
   });
 });
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [roomId, room] of rooms) {
+    const hasActivePlayers = room.players.some(p => p.ws && p.ws.readyState === WebSocket.OPEN);
+    const hasDisconnectedTooLong = room.players.some(p => 
+      p.disconnectedAt && (now - p.disconnectedAt > 5 * 60 * 1000)
+    );
+    
+    if (!hasActivePlayers && hasDisconnectedTooLong) {
+      rooms.delete(roomId);
+      console.log(`Room ${roomId} deleted (timeout)`);
+    }
+  }
+}, 60 * 1000);
 
 console.log(`WebSocket server started on port ${PORT}`);
