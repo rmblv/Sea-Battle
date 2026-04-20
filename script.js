@@ -1572,6 +1572,7 @@ function initModeSelect() {
   });
 
   createRoomBtn.addEventListener('click', () => {
+    isGameModeSelected = true;
     player1Name = prompt('Введите ваше имя:', 'Игрок 1') || 'Игрок 1';
     connectToServer();
   });
@@ -1582,6 +1583,7 @@ function initModeSelect() {
       alert('Введите ID комнаты');
       return;
     }
+    isGameModeSelected = true;
     player1Name = prompt('Введите ваше имя:', 'Игрок 1') || 'Игрок 1';
     roomId = roomIdVal;
     connectToServer();
@@ -1687,6 +1689,7 @@ function handleServerMessage(message) {
       roomId = message.roomId;
       myPlayerNum = 1;
       isOnlineMode = true;
+      isGameModeSelected = true;
       document.getElementById('room-id-text').textContent = roomId;
       waitingTitle.textContent = 'Ожидание игрока...';
       break;
@@ -1696,6 +1699,7 @@ function handleServerMessage(message) {
       roomId = message.roomId;
       myPlayerNum = 2;
       isOnlineMode = true;
+      isGameModeSelected = true;
       document.getElementById('room-id-text').textContent = roomId;
       waitingTitle.textContent = 'Подключение...';
       break;
@@ -1816,6 +1820,7 @@ function handleServerMessage(message) {
       roomId = message.roomId;
       myPlayerNum = message.playerNum;
       isOnlineMode = true;
+      isGameModeSelected = true;  // Отмечаем, что режим выбран
       document.getElementById('disconnect-overlay').style.display = 'none';
       document.getElementById('waiting-room').style.display = 'none';
       
@@ -2416,6 +2421,12 @@ function showResumeGamePrompt() {
   const savedState = loadGameState();
   if (!savedState) return;
   
+  // Скрываем все экраны
+  document.getElementById('mode-select').style.display = 'none';
+  document.getElementById('online-menu').style.display = 'none';
+  document.getElementById('waiting-room').style.display = 'none';
+  document.getElementById('intro').style.display = 'none';
+  
   const overlay = document.createElement('div');
   overlay.id = 'resume-game-overlay';
   overlay.style.position = 'fixed';
@@ -2423,7 +2434,7 @@ function showResumeGamePrompt() {
   overlay.style.left = '0';
   overlay.style.width = '100vw';
   overlay.style.height = '100vh';
-  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.95)';
   overlay.style.zIndex = '9999';
   overlay.style.display = 'flex';
   overlay.style.justifyContent = 'center';
@@ -2464,6 +2475,7 @@ function showResumeGamePrompt() {
 
 function resumeSavedGame(savedState) {
   // Сначала подключаемся к серверу
+  isGameModeSelected = true;  // Отмечаем, что режим уже выбран
   player1Name = savedState.player1Name;
   player2Name = savedState.player2Name;
   roomId = savedState.roomId;  // Используем сохранённый ID комнаты
