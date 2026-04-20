@@ -1861,7 +1861,7 @@ function handleOpponentMove(message) {
   if (!cell || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
 
   if (message.hit) {
-    cell.classList.add('hit');
+    cell.classList.add('hit', 'ship-hit');
     cell.style.backgroundImage = `url('${hitImg}')`;
     hitSound.currentTime = 0;
     hitSound.play();
@@ -1870,6 +1870,7 @@ function handleOpponentMove(message) {
       const ship = myShips.find(s => s.cells.includes(cell));
       if (ship) {
         ship.hits = ship.cells.length;
+        ship.cells.forEach(c => c.classList.remove('ship-hit'));
         markAdjacentCellsForOnline(ship.cells, myCells, missImg);
         
         if (areAllShipsSunk(myShips)) {

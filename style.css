@@ -162,6 +162,10 @@ body {
   animation: explode 0.5s ease-out;
 }
 
+.cell.ship-hit {
+  box-shadow: 0 0 8px #ff0000, inset 0 0 0 2px #ff0000;
+}
+
 .cell.miss {
   background-size: cover;
   background-position: center;
