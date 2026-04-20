@@ -974,6 +974,7 @@ function handleClick(e) {
     ship.hits++;
     
     if (ship.hits === ship.cells.length) {
+      ship.cells.forEach(c => c.classList.add('sunk'));
       const markedCount = markAdjacentCells(ship.cells, boardCells, missImg);
       
       if (markedCount > 0) {
@@ -1680,23 +1681,25 @@ function startOnlineGame() {
   updateShipsCounter();
 
   if (isOnlineMode) {
-    const myLabel = document.getElementById('player1-my-label');
-    const enemyLabel = document.getElementById('player2-enemy-label');
+    const player1MyLabel = document.getElementById('player1-my-label');
+    const player2EnemyLabel = document.getElementById('player2-enemy-label');
+    const player2MyLabel = document.getElementById('player2-my-label');
+    const player1EnemyLabel = document.getElementById('player1-enemy-label');
     
     if (myPlayerNum === 1) {
-      myLabel.style.display = 'block';
-      myLabel.textContent = 'ВЫ';
-      enemyLabel.style.display = 'block';
-      enemyLabel.textContent = 'СОПЕРНИК';
+      player1MyLabel.style.display = 'block';
+      player1MyLabel.textContent = 'ВЫ';
+      player2EnemyLabel.style.display = 'block';
+      player2EnemyLabel.textContent = 'СОПЕРНИК';
       document.getElementById('player1-title').textContent = player1Name;
       document.getElementById('player2-title').textContent = player2Name;
       
       restoreShipsForPlayer(board1Cells, ships1, board1HitImage);
     } else {
-      myLabel.style.display = 'block';
-      myLabel.textContent = 'ВЫ';
-      enemyLabel.style.display = 'block';
-      enemyLabel.textContent = 'СОПЕРНИК';
+      player2MyLabel.style.display = 'block';
+      player2MyLabel.textContent = 'ВЫ';
+      player1EnemyLabel.style.display = 'block';
+      player1EnemyLabel.textContent = 'СОПЕРНИК';
       document.getElementById('player1-title').textContent = player1Name;
       document.getElementById('player2-title').textContent = player2Name;
       
@@ -1870,7 +1873,10 @@ function handleOpponentMove(message) {
       const ship = myShips.find(s => s.cells.includes(cell));
       if (ship) {
         ship.hits = ship.cells.length;
-        ship.cells.forEach(c => c.classList.remove('ship-hit'));
+        ship.cells.forEach(c => {
+          c.classList.remove('ship-hit');
+          c.classList.add('sunk');
+        });
         markAdjacentCellsForOnline(ship.cells, myCells, missImg);
         
         if (areAllShipsSunk(myShips)) {
