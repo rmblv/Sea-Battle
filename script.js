@@ -1798,6 +1798,7 @@ function handleOnlineClick(e) {
       ship.hits++;
       
       if (ship.hits === ship.cells.length) {
+        ship.cells.forEach(c => c.classList.add('sunk'));
         const markedCount = markAdjacentCellsForOnline(ship.cells, parentBoard === 'board1' ? board1Cells : board2Cells, missImg);
         
         if (markedCount > 0) {
@@ -1946,20 +1947,45 @@ function highlightOnlineBoard() {
 }
 
 function showOnlineWin(winnerName) {
+  gameActive = false;
+  
+  const isWinner = (myPlayerNum === 1 && winnerName === player1Name) || 
+                 (myPlayerNum === 2 && winnerName === player2Name);
+  const loserName = isWinner ? (myPlayerNum === 1 ? player2Name : player1Name) : (myPlayerNum === 1 ? player1Name : player2Name);
+  
   const overlay = document.createElement('div');
   overlay.classList.add('board-overlay');
   overlay.style.zIndex = '1000';
-  overlay.innerHTML = `🏆 ПОБЕДА! ${winnerName} победил! 🏆<br><br><button id="rematch-btn" style="padding: 10px 20px; font-size: 18px; cursor: pointer; background: gold; border: none; border-radius: 5px;">Предложить реванш</button>`;
+  overlay.style.position = 'fixed';
+  overlay.style.top = '50%';
+  overlay.style.left = '50%';
+  overlay.style.transform = 'translate(-50%, -50%)';
   
-  const enemyBoard = myPlayerNum === 1 ? board2 : board1;
-  enemyBoard.appendChild(overlay);
+  if (isWinner) {
+    overlay.innerHTML = `🏆 ПОБЕДА! ${winnerName} победил! 🏆<br><br><button id="rematch-btn" style="padding: 10px 20px; font-size: 18px; cursor: pointer; background: gold; border: none; border-radius: 5px; color: black;">Предложить реванш</button>`;
+    overlay.style.color = 'rgb(178, 135, 41)';
+    overlay.style.border = '2px solid rgb(178, 135, 41)';
+  } else {
+    overlay.innerHTML = `💀 ПОРАЖЕНИЕ! ${loserName} победил! 💀<br><br><button id="rematch-btn" style="padding: 10px 20px; font-size: 18px; cursor: pointer; background: #444; color: white; border: none; border-radius: 5px;">Предложить реванш</button>`;
+    overlay.style.color = '#ff4444';
+    overlay.style.border = '2px solid #ff4444';
+  }
+  
+  document.body.appendChild(overlay);
 
-  document.getElementById('rematch-btn').addEventListener('click', () => {
+  document.getElementById('rematch-btn').addEventListener('click', function() {
     socket.send(JSON.stringify({ type: 'rematch-request' }));
-    showTurnMessage('Ожидаем ответа соперника...');
+    this.textContent = 'Ожидаем ответа...';
+    this.disabled = true;
+    this.style.background = '#888';
+    this.style.cursor = 'default';
   });
 
-  showTurnMessage(`🏆 ${winnerName} победил! 🏆`);
+  showTurnMessage(isWinner ? `🏆 ${winnerName} победил! 🏆` : `💀 ${loserName} победил! 💀`);
+}
+
+function handleGameOver(winnerName) {
+  showOnlineWin(winnerName);
 }
 
 function showDisconnectOverlay() {
@@ -2013,8 +2039,40 @@ function resetGameForRematch() {
 
   document.getElementById('disconnect-overlay').style.display = 'none';
   document.getElementById('rematch-overlay').style.display = 'none';
+  document.getElementById('waiting-room').style.display = 'none';
+  document.getElementById('mode-select').style.display = 'none';
 
-  startLocalGameSetup();
+  if (isOnlineMode) {
+    startOnlineGameSetupForRematch();
+  } else {
+    startLocalGameSetup();
+  }
+}
+
+function startOnlineGameSetupForRematch() {
+  const gameContainer = document.getElementById('game-container');
+  gameContainer.style.display = 'flex';
+  
+  createBoard(board1, board1Cells);
+  createBoard(board2, board2Cells);
+  
+  const myBoard = myPlayerNum === 1 ? board1 : board2;
+  const enemyBoard = myPlayerNum === 1 ? board2 : board1;
+  const myCells = myPlayerNum === 1 ? board1Cells : board2Cells;
+  
+  player1Mode = 'manual';
+  player2Mode = 'manual';
+  currentSetupPlayer = myPlayerNum;
+  
+  const infoDiv = document.getElementById('placement-info');
+  if (infoDiv) infoDiv.remove();
+  const waitingOpponent = document.getElementById('waiting-opponent');
+  if (waitingOpponent) waitingOpponent.remove();
+  
+  myBoard.style.display = 'block';
+  enemyBoard.style.display = 'block';
+  
+  startManualPlacement(myPlayerNum);
 }
 
 function resetGameState() {

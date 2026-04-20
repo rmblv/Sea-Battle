@@ -200,7 +200,7 @@ body {
 }
 
 .board-overlay {
-  position: absolute;
+  position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -212,7 +212,7 @@ body {
   border-radius: 10px;
   border: 2px solid rgb(178, 135, 41);
   text-align: center;
-  z-index: 100;
+  z-index: 1000;
   white-space: nowrap;
   font-family: Montserrat;
   box-shadow: 0 0 20px rgba(0,0,0,0.5);
