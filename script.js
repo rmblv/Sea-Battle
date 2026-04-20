@@ -55,6 +55,206 @@ let isMyTurn = false;
 let waitingForOpponent = false;
 let rematchRequested = false;
 
+// === Функции для сохранения состояния игры в localStorage ===
+const GAME_STATE_KEY = 'seabattle_game_state';
+
+function saveGameState() {
+  if (!isOnlineMode || !roomId) return;
+  
+  const ships1Coords = ships1.map(ship => 
+    ship.cells.map(cell => ({
+      x: parseInt(cell.dataset.x),
+      y: parseInt(cell.dataset.y)
+    }))
+  );
+  
+  const ships2Coords = ships2.map(ship => 
+    ship.cells.map(cell => ({
+      x: parseInt(cell.dataset.x),
+      y: parseInt(cell.dataset.y)
+    }))
+  );
+  
+  // Сохраняем ходы (попадания и промахи)
+  const board1Moves = { hits: [], misses: [] };
+  const board2Moves = { hits: [], misses: [] };
+  
+  board1Cells.forEach(cell => {
+    const x = parseInt(cell.dataset.x);
+    const y = parseInt(cell.dataset.y);
+    if (cell.classList.contains('hit')) board1Moves.hits.push({ x, y });
+    if (cell.classList.contains('miss')) board1Moves.misses.push({ x, y });
+  });
+  
+  board2Cells.forEach(cell => {
+    const x = parseInt(cell.dataset.x);
+    const y = parseInt(cell.dataset.y);
+    if (cell.classList.contains('hit')) board2Moves.hits.push({ x, y });
+    if (cell.classList.contains('miss')) board2Moves.misses.push({ x, y });
+  });
+  
+  const state = {
+    roomId,
+    myPlayerNum,
+    player1Name,
+    player2Name,
+    gameStarted,
+    currentPlayer,
+    isSetupPhase,
+    myShipsReady,
+    opponentReady,
+    ships: [ships1Coords, ships2Coords],
+    moves: {
+      board1: board1Moves,
+      board2: board2Moves
+    },
+    timestamp: Date.now()
+  };
+  
+  try {
+    localStorage.setItem(GAME_STATE_KEY, JSON.stringify(state));
+    console.log('Game state saved to localStorage');
+  } catch (e) {
+    console.error('Failed to save game state:', e);
+  }
+}
+
+function loadGameState() {
+  try {
+    const stateStr = localStorage.getItem(GAME_STATE_KEY);
+    if (!stateStr) return null;
+    
+    const state = JSON.parse(stateStr);
+    
+    // Проверяем, не истекло ли время (5 минут)
+    const elapsed = Date.now() - state.timestamp;
+    if (elapsed > 5 * 60 * 1000) {
+      console.log('Game state expired');
+      clearGameState();
+      return null;
+    }
+    
+    return state;
+  } catch (e) {
+    console.error('Failed to load game state:', e);
+    return null;
+  }
+}
+
+function clearGameState() {
+  localStorage.removeItem(GAME_STATE_KEY);
+  console.log('Game state cleared');
+}
+
+function hasSavedGame() {
+  return loadGameState() !== null;
+}
+
+// Функция для восстановления игры из localStorage
+function restoreGameFromState(state) {
+  roomId = state.roomId;
+  myPlayerNum = state.myPlayerNum;
+  player1Name = state.player1Name;
+  player2Name = state.player2Name;
+  gameStarted = state.gameStarted;
+  currentPlayer = state.currentPlayer;
+  isSetupPhase = state.isSetupPhase;
+  myShipsReady = state.myShipsReady;
+  opponentReady = state.opponentReady;
+  
+  // Создаём доски
+  createBoard(board1, board1Cells);
+  createBoard(board2, board2Cells);
+  
+  // Восстанавливаем корабли
+  if (state.ships && state.ships[0]) {
+    applyReceivedShips(state.ships[0], board1Cells, ships1, board1HitImage);
+  }
+  if (state.ships && state.ships[1]) {
+    applyReceivedShips(state.ships[1], board2Cells, ships2, board2HitImage);
+  }
+  
+  // Восстанавливаем ходы
+  if (state.moves) {
+    if (state.moves.board1) {
+      state.moves.board1.hits.forEach(coord => {
+        const cell = board1Cells[coord.y * boardSize + coord.x];
+        if (cell) {
+          cell.classList.add('hit');
+          cell.style.backgroundImage = `url('${board1HitImage}')`;
+        }
+      });
+      state.moves.board1.misses.forEach(coord => {
+        const cell = board1Cells[coord.y * boardSize + coord.x];
+        if (cell) {
+          cell.classList.add('miss');
+          cell.style.backgroundImage = `url('${board1MissImage}')`;
+        }
+      });
+    }
+    if (state.moves.board2) {
+      state.moves.board2.hits.forEach(coord => {
+        const cell = board2Cells[coord.y * boardSize + coord.x];
+        if (cell) {
+          cell.classList.add('hit');
+          cell.style.backgroundImage = `url('${board2HitImage}')`;
+        }
+      });
+      state.moves.board2.misses.forEach(coord => {
+        const cell = board2Cells[coord.y * boardSize + coord.x];
+        if (cell) {
+          cell.classList.add('miss');
+          cell.style.backgroundImage = `url('${board2MissImage}')`;
+        }
+      });
+    }
+  }
+  
+  isOnlineMode = true;
+  isMyTurn = myPlayerNum === currentPlayer;
+  
+  console.log('Game restored from localStorage');
+}
+
+function restoreMovesFromState(moves) {
+  if (!moves) return;
+  
+  if (moves.board1) {
+    moves.board1.hits.forEach(coord => {
+      const cell = board1Cells[coord.y * boardSize + coord.x];
+      if (cell) {
+        cell.classList.add('hit');
+        cell.style.backgroundImage = `url('${board1HitImage}')`;
+      }
+    });
+    moves.board1.misses.forEach(coord => {
+      const cell = board1Cells[coord.y * boardSize + coord.x];
+      if (cell) {
+        cell.classList.add('miss');
+        cell.style.backgroundImage = `url('${board1MissImage}')`;
+      }
+    });
+  }
+  if (moves.board2) {
+    moves.board2.hits.forEach(coord => {
+      const cell = board2Cells[coord.y * boardSize + coord.x];
+      if (cell) {
+        cell.classList.add('hit');
+        cell.style.backgroundImage = `url('${board2HitImage}')`;
+      }
+    });
+    moves.board2.misses.forEach(coord => {
+      const cell = board2Cells[coord.y * boardSize + coord.x];
+      if (cell) {
+        cell.classList.add('miss');
+        cell.style.backgroundImage = `url('${board2MissImage}')`;
+      }
+    });
+  }
+  
+  console.log('Moves restored from localStorage');
+}
+
 function setupVideoSkippable(videoElement, popupElement) {
   videoElement.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -660,6 +860,7 @@ function finishPlacement() {
     }));
 
     myShipsReady = true;
+    saveGameState();
 
     const waitingOverlay = document.createElement('div');
     waitingOverlay.id = 'waiting-opponent';
@@ -691,6 +892,7 @@ function finishPlacement() {
       }
     }, 500);
 
+    saveGameState(); // Сохраняем после расстановки кораблей
     return;
   }
 
@@ -1448,8 +1650,8 @@ function connectToServer() {
 
   socket.onclose = (event) => {
     console.log('Disconnected from server');
-    if (gameStarted) {
-      showDisconnectOverlay();
+    if (gameStarted || isSetupPhase) {
+      showDisconnectOverlay(Date.now());
     } else if (isOnlineMode) {
       alert('Соединение потеряно');
       waitingRoom.style.display = 'none';
@@ -1588,6 +1790,7 @@ function handleServerMessage(message) {
       }
       
       startOnlineGame();
+      saveGameState(); // Сохраняем когда игра началась
       break;
 
     case 'opponent-move':
@@ -1631,12 +1834,16 @@ function handleServerMessage(message) {
         if (message.ships) {
           // Восстанавливаем корабли
           if (myPlayerNum === 1) {
-            // Я игрок 1 - мои корабли в ships[0], корабли противника в ships[1]
             applyReceivedShips(message.ships[0], board1Cells, ships1, board1HitImage);
           } else {
-            // Я игрок 2 - мои корабли в ships[1], корабли противника в ships[0]
             applyReceivedShips(message.ships[1], board2Cells, ships2, board2HitImage);
           }
+        }
+        
+        // Пытаемся восстановить ходы из localStorage
+        const savedState = loadGameState();
+        if (savedState && savedState.moves) {
+          restoreMovesFromState(savedState.moves);
         }
         
         startOnlineGame();
@@ -1904,6 +2111,7 @@ function handleOnlineClick(e) {
 
     showTurnMessage('Попадание! Ещё ход!');
     highlightOnlineBoard();
+    saveGameState();
 
   } else {
     cell.classList.add('miss');
@@ -1921,6 +2129,7 @@ function handleOnlineClick(e) {
     isMyTurn = false;
     showTurnMessage('Мимо! Ход переходит к сопернику');
     highlightOnlineBoard();
+    saveGameState();
   }
 }
 
@@ -1975,6 +2184,7 @@ function handleOpponentMove(message) {
   }
 
   updateShipsCounter();
+  saveGameState();
 }
 
 function markAdjacentCellsForOnline(shipCells, boardCells, missImg) {
@@ -2002,6 +2212,10 @@ function markAdjacentCellsForOnline(shipCells, boardCells, missImg) {
       }
     }
   }
+  
+  if (markedCount > 0 && isOnlineMode) {
+    saveGameState();
+  }
 
   return markedCount;
 }
@@ -2022,6 +2236,7 @@ function highlightOnlineBoard() {
 
 function showOnlineWin(winnerName) {
   gameActive = false;
+  clearGameState();
   
   const isWinner = (myPlayerNum === 1 && winnerName === player1Name) || 
                  (myPlayerNum === 2 && winnerName === player2Name);
@@ -2194,10 +2409,72 @@ function resetGameState() {
   isMyTurn = false;
   waitingForOpponent = false;
   rematchRequested = false;
+  clearGameState();
+}
+
+function showResumeGamePrompt() {
+  const savedState = loadGameState();
+  if (!savedState) return;
+  
+  const overlay = document.createElement('div');
+  overlay.id = 'resume-game-overlay';
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100vw';
+  overlay.style.height = '100vh';
+  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+  overlay.style.zIndex = '9999';
+  overlay.style.display = 'flex';
+  overlay.style.justifyContent = 'center';
+  overlay.style.alignItems = 'center';
+  overlay.style.flexDirection = 'column';
+  
+  overlay.innerHTML = `
+    <div style="color: white; font-size: 28px; font-family: Montserrat; margin-bottom: 20px; text-align: center;">
+      Обнаружена сохранённая игра
+    </div>
+    <div style="color: #aaa; font-size: 18px; font-family: Montserrat; margin-bottom: 30px; text-align: center;">
+      Комната: ${savedState.roomId}<br>
+      Вы: ${savedState.myPlayerNum === 1 ? savedState.player1Name : savedState.player2Name}
+    </div>
+    <div style="display: flex; gap: 20px;">
+      <button id="resume-game-btn" style="padding: 15px 30px; font-size: 20px; cursor: pointer; background: gold; border: none; border-radius: 10px; color: black; font-weight: bold; font-family: Montserrat;">
+        Продолжить игру
+      </button>
+      <button id="discard-game-btn" style="padding: 15px 30px; font-size: 20px; cursor: pointer; background: #444; border: none; border-radius: 10px; color: white; font-family: Montserrat;">
+        Начать заново
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(overlay);
+  
+  document.getElementById('resume-game-btn').addEventListener('click', () => {
+    overlay.remove();
+    resumeSavedGame(savedState);
+  });
+  
+  document.getElementById('discard-game-btn').addEventListener('click', () => {
+    clearGameState();
+    overlay.remove();
+    initModeSelect();
+  });
+}
+
+function resumeSavedGame(savedState) {
+  // Сначала подключаемся к серверу
+  player1Name = savedState.player1Name;
+  player2Name = savedState.player2Name;
+  roomId = savedState.roomId;  // Используем сохранённый ID комнаты
+  connectToServer();
 }
 
 window.addEventListener('load', () => {
-  if (!isGameModeSelected) {
+  // Проверяем, есть ли сохранённая игра
+  if (hasSavedGame()) {
+    showResumeGamePrompt();
+  } else if (!isGameModeSelected) {
     initModeSelect();
   }
   scaleScene();
