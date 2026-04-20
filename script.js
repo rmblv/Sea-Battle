@@ -1273,6 +1273,118 @@ function showTurnMessage(message) {
   }, 2000);
 }
 
+function showNameInputPrompt(title, defaultValue, callback) {
+  const overlay = document.createElement('div');
+  overlay.id = 'name-input-overlay';
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100vw';
+  overlay.style.height = '100vh';
+  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+  overlay.style.zIndex = '9999';
+  overlay.style.display = 'flex';
+  overlay.style.justifyContent = 'center';
+  overlay.style.alignItems = 'center';
+  
+  const container = document.createElement('div');
+  container.style.backgroundColor = 'rgba(0, 0, 0, 0.95)';
+  container.style.padding = '40px 50px';
+  container.style.borderRadius = '20px';
+  container.style.border = '3px solid rgb(178, 135, 41)';
+  container.style.textAlign = 'center';
+  container.style.boxShadow = '0 0 30px rgba(178, 135, 41, 0.3)';
+  
+  const titleEl = document.createElement('div');
+  titleEl.textContent = title;
+  titleEl.style.color = 'white';
+  titleEl.style.fontSize = '24px';
+  titleEl.style.fontFamily = 'Montserrat, sans-serif';
+  titleEl.style.marginBottom = '25px';
+  titleEl.style.fontWeight = 'bold';
+  
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = defaultValue || '';
+  input.placeholder = 'Ваше имя';
+  input.maxLength = 20;
+  input.style.padding = '15px 20px';
+  input.style.fontSize = '18px';
+  input.style.borderRadius = '10px';
+  input.style.border = '2px solid rgb(178, 135, 41)';
+  input.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+  input.style.color = 'black';
+  input.style.fontFamily = 'Montserrat, sans-serif';
+  input.style.width = '250px';
+  input.style.marginBottom = '25px';
+  input.style.textAlign = 'center';
+  
+  const buttons = document.createElement('div');
+  buttons.style.display = 'flex';
+  buttons.style.gap = '15px';
+  buttons.style.justifyContent = 'center';
+  
+  const okBtn = document.createElement('button');
+  okBtn.textContent = 'ОК';
+  okBtn.style.padding = '12px 35px';
+  okBtn.style.fontSize = '18px';
+  okBtn.style.fontFamily = 'Montserrat, sans-serif';
+  okBtn.style.backgroundColor = 'rgb(178, 135, 41)';
+  okBtn.style.color = 'black';
+  okBtn.style.border = 'none';
+  okBtn.style.borderRadius = '10px';
+  okBtn.style.cursor = 'pointer';
+  okBtn.style.fontWeight = 'bold';
+  
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Отмена';
+  cancelBtn.style.padding = '12px 25px';
+  cancelBtn.style.fontSize = '18px';
+  cancelBtn.style.fontFamily = 'Montserrat, sans-serif';
+  cancelBtn.style.backgroundColor = 'transparent';
+  cancelBtn.style.color = 'white';
+  cancelBtn.style.border = '2px solid white';
+  cancelBtn.style.borderRadius = '10px';
+  cancelBtn.style.cursor = 'pointer';
+  
+  buttons.appendChild(okBtn);
+  buttons.appendChild(cancelBtn);
+  
+  container.appendChild(titleEl);
+  container.appendChild(input);
+  container.appendChild(buttons);
+  overlay.appendChild(container);
+  document.body.appendChild(overlay);
+  
+  input.focus();
+  input.select();
+  
+  const cleanup = () => {
+    overlay.remove();
+  };
+  
+  const handleOk = () => {
+    cleanup();
+    callback(input.value.trim() || 'Игрок');
+  };
+  
+  const handleCancel = () => {
+    cleanup();
+    callback(null);
+  };
+  
+  okBtn.addEventListener('click', handleOk);
+  cancelBtn.addEventListener('click', handleCancel);
+  
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      handleOk();
+    } else if (e.key === 'Escape') {
+      handleCancel();
+    }
+  });
+}
+
 // Функция для показа ошибок размещения
 function showPlacementError(message) {
   const errorDiv = document.createElement('div');
@@ -1573,8 +1685,12 @@ function initModeSelect() {
 
   createRoomBtn.addEventListener('click', () => {
     isGameModeSelected = true;
-    player1Name = prompt('Введите ваше имя:', 'Игрок 1') || 'Игрок 1';
-    connectToServer();
+    showNameInputPrompt('Введите ваше имя:', 'Игрок 1', (name) => {
+      if (name) {
+        player1Name = name;
+        connectToServer();
+      }
+    });
   });
 
   joinRoomBtn.addEventListener('click', () => {
@@ -1584,9 +1700,13 @@ function initModeSelect() {
       return;
     }
     isGameModeSelected = true;
-    player1Name = prompt('Введите ваше имя:', 'Игрок 1') || 'Игрок 1';
     roomId = roomIdVal;
-    connectToServer();
+    showNameInputPrompt('Введите ваше имя:', 'Игрок 1', (name) => {
+      if (name) {
+        player1Name = name;
+        connectToServer();
+      }
+    });
   });
 
   cancelWaitBtn.addEventListener('click', () => {
@@ -1837,19 +1957,40 @@ function handleServerMessage(message) {
         }
         
         if (message.ships) {
-          // Восстанавливаем корабли
+          // Восстанавливаем СВОИ корабли
           if (myPlayerNum === 1) {
             applyReceivedShips(message.ships[0], board1Cells, ships1, board1HitImage);
           } else {
             applyReceivedShips(message.ships[1], board2Cells, ships2, board2HitImage);
           }
+          
+          // Восстанавливаем корабли СОПЕРНИКА
+          if (myPlayerNum === 1 && message.ships[1]) {
+            applyReceivedShips(message.ships[1], board2Cells, ships2, board2HitImage);
+          } else if (myPlayerNum === 2 && message.ships[0]) {
+            applyReceivedShips(message.ships[0], board1Cells, ships1, board1HitImage);
+          }
         }
         
-        // Пытаемся восстановить ходы из localStorage
+        // Восстанавливаем ходы из localStorage (свои ходы)
         const savedState = loadGameState();
         if (savedState && savedState.moves) {
           restoreMovesFromState(savedState.moves);
         }
+        
+        // Восстанавливаем ходы СОПЕРНИКА из сообщения (если сервер их отправляет)
+        if (message.moves) {
+          restoreMovesFromState(message.moves);
+        }
+        
+        console.log('Game restored:', {
+          myPlayerNum,
+          currentPlayer,
+          isMyTurn,
+          ships1: ships1.length,
+          ships2: ships2.length,
+          savedState: !!savedState
+        });
         
         startOnlineGame();
       } else {
@@ -2226,6 +2367,8 @@ function markAdjacentCellsForOnline(shipCells, boardCells, missImg) {
 }
 
 function highlightOnlineBoard() {
+  console.log('highlightOnlineBoard:', { myPlayerNum, currentPlayer, isMyTurn, gameActive });
+  
   board1.classList.remove('active-board');
   board2.classList.remove('active-board');
 
