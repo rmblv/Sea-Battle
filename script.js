@@ -2343,7 +2343,6 @@ function markAdjacentCellsForOnline(shipCells, boardCells, missImg) {
   let maxY = Math.min(boardSize - 1, Math.max(...shipCoords.map(c => c.y)) + 1);
 
   let markedCount = 0;
-  const markedCoords = [];  // Собираем координаты для отправки на сервер
 
   for (let y = minY; y <= maxY; y++) {
     for (let x = minX; x <= maxX; x++) {
@@ -2353,24 +2352,16 @@ function markAdjacentCellsForOnline(shipCells, boardCells, missImg) {
       if (!isShipCell && !cell.classList.contains('hit') && !cell.classList.contains('miss')) {
         cell.classList.add('miss');
         cell.style.backgroundImage = `url('${missImg}')`;
-        markedCoords.push({ x, y });
         markedCount++;
       }
     }
   }
   
-  // Отправляем промахи на сервер для сохранения
-  if (markedCount > 0) {
-    if (isOnlineMode && socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({
-        type: 'adjacent-miss',
-        coords: markedCoords
-      }));
-    }
+  if (markedCount > 0 && isOnlineMode) {
     saveGameState();
   }
 
-return markedCount;
+  return markedCount;
 }
 
 function highlightOnlineBoard() {
