@@ -216,8 +216,10 @@ function restoreGameFromState(state) {
   console.log('Game restored from localStorage');
 }
 
-function restoreMovesFromState(moves) {
+// Алиас для обратной совместимости
+function applyAllMoves(moves, source = 'unknown') {
   if (!moves) return;
+  console.log('=== APPLY MOVES from:', source);
   
   if (moves.board1) {
     moves.board1.hits.forEach(coord => {
@@ -251,8 +253,6 @@ function restoreMovesFromState(moves) {
       }
     });
   }
-  
-  console.log('Moves restored from localStorage');
 }
 
 // Алиас для обратной совместимости
@@ -1991,7 +1991,7 @@ function handleServerMessage(message) {
           console.log('=== APPLY MOVES DEBUG ===');
           console.log('myPlayerNum:', myPlayerNum);
           console.log('server moves:', message.moves);
-          applyAllMoves(message.moves);
+          applyAllMoves(message.moves, 'server');
         }
         
         console.log('Game fully restored!');
