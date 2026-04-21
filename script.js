@@ -1983,13 +1983,15 @@ function handleServerMessage(message) {
         // Обновляем счетчик кораблей
         updateShipsCounter();
         
-        // Запускаем игру (это скроет корабли)
+// Запускаем игру (это скроет корабли)
         startOnlineGame();
         
-        // Восстанавливаем ходы с учётом инверсии для игрока 1
+        // Восстанавливаем ходы - просто без инверсии + отладка
         if (message.moves) {
-          const movesToApply = (myPlayerNum === 1) ? invertBoardMoves(message.moves) : message.moves;
-          applyAllMoves(movesToApply);
+          console.log('=== APPLY MOVES DEBUG ===');
+          console.log('myPlayerNum:', myPlayerNum);
+          console.log('server moves:', message.moves);
+          applyAllMoves(message.moves);
         }
         
         console.log('Game fully restored!');
