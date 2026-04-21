@@ -217,7 +217,7 @@ function restoreGameFromState(state) {
 }
 
 
-function applyAllMoves(moves, source = 'unknown', shipsData = null, b1Cells = board1Cells, b2Cells = board2Cells, b1HitImg = board1HitImage, b2HitImg = board2HitImage, b1MissImg = board1MissImage, b2MissImg = board2MissImage, playerNum = 1) {
+function applyAllMoves(moves, source = 'unknown', shipsData = null, b1Cells = board1Cells, b2Cells = board2Cells, b1HitImg = board1HitImage, b2HitImg = board2HitImage, b1MissImg = board1MissImage, b2MissImg = board2MissImage) {
   if (!moves) return;
   console.log('=== APPLY MOVES from:', source);
 
@@ -254,79 +254,35 @@ function applyAllMoves(moves, source = 'unknown', shipsData = null, b1Cells = bo
     });
   }
 
-  // Восстанавливаем состояние sunk для уничтоженных кораблей
-  if (shipsData && playerNum && source === 'server') {
-    // При reconnect используем оригинальные moves с сервера (до инверсии)
-    // Сейчас moves = movesToApply (возможно инвертированные для игрока 2)
-    // Но мы передаем их как есть - restoreSunkState правильно определит по playerNum
-    // Для игрока 1: его ходы = board1.hits, его корабли = shipsData[0]
-    // Для игрока 2: его ходы = board2.hits (после инверси), его корабли = shipsData[1]
-    // НО! После инверси для игрока2: board1 <- board2 (его ходы), board2 <- board1
-    // Поэтому нужно использовать правильный key:
-    restoreSunkState(shipsData, b1Cells, b2Cells, b1HitImg, b2HitImg, b1MissImg, b2MissImg, playerNum, moves, source);
+  // Восстанавливаем sunk состояние для своих кораблей (игрок 1)
+  if (shipsData && source === 'server') {
+    // Создаём копию moves чтобы использовать для restoreSunkState
+    const optMoves = { board1: moves.board1, board2: moves.board2 };
+    restoreSunkState(shipsData, b1Cells, b2Cells, b1MissImg, b2MissImg, optMoves);
   }
 }
 
-function restoreSunkState(shipsData, b1Cells, b2Cells, b1HitImg, b2HitImg, b1MissImg, b2MissImg, playerNum, moves, source) {
-  if (!shipsData || !moves) return;
-
-  // playerNum - это номер игрока на сервере (1 или 2)
-  // source === 'server' означает что moves пришли от сервера при reconnect
-  //
-  // Для игрока 1: его корабли в ships[0], ходы по нему в moves.board1.hits
-  // Для игрока 2: его корабли в ships[1], ходы по нему в moves.board2.hits (после инверсии)
-  //
-  // Но для восстановления sunk состояния нужно использовать ОРИГИНАЛЬНЫЕ moves с сервера!
-  // message.moves (до инверсии) содержит правильные данные
-
-  // Получаем ОРИГИНАЛЬНЫЕ moves (до инверсии)
-  const originalMoves = moves._original || moves;
+function restoreSunkState(shipsData, b1Cells, b2Cells, b1MissImg, b2MissImg, originalMoves) {
+  if (!shipsData) return;
   if (!originalMoves) return;
 
-  // Мои корабли (которые поразил соперник)
-  const myShips = shipsData[playerNum - 1];
-  const myBoardCells = playerNum === 1 ? b1Cells : b2Cells;
-  const myMissImg = playerNum === 1 ? b2MissImg : b1MissImg;
+  // Только для игрока 1 (хост): ships[0] vs board1.hits
+  const myShips = shipsData[0];
+  if (!myShips) return;
 
-  // Ходы соперника по мне ( оригинальные)
-  const myHitKey = playerNum === 1 ? 'board1' : 'board2';
-  const myHitCoords = new Set(originalMoves[myHitKey]?.hits?.map(c => `${c.x},${c.y}`) || []);
+  const myHitCoords = new Set(originalMoves.board1?.hits?.map(c => `${c.x},${c.y}`) || []);
 
-  // Проверяем МОИ корабли - были ли они полностью поражены соперником
-  if (myShips) {
-    myShips.forEach(shipCoords => {
-      const allHit = shipCoords.every(coord => myHitCoords.has(`${coord.x},${coord.y}`));
-      if (allHit && shipCoords.length > 0) {
-        const shipCells = shipCoords.map(coord => myBoardCells[coord.y * boardSize + coord.x]).filter(c => c);
-        shipCells.forEach(cell => {
-          cell.classList.remove('ship-hit');
-          cell.classList.add('sunk');
-        });
-        markAdjacentCellsForOnline(shipCells, myBoardCells, myMissImg);
-      }
-    });
-  }
-
-  // КОРАБЛИ СОПЕРНИКА (которые Я поразил) - для восстановления на вражеской доске
-  const enemyShips = shipsData[playerNum === 1 ? 1 : 0];
-  const enemyBoardCells = playerNum === 1 ? b2Cells : b1Cells; // Доска соперника (куда я стрелял)
-  const enemyHitKey = playerNum === 1 ? 'board2' : 'board1';
-  const enemyHitCoords = new Set(originalMoves[enemyHitKey]?.hits?.map(c => `${c.x},${c.y}`) || []);
-
-  if (enemyShips) {
-    enemyShips.forEach(shipCoords => {
-      const allHit = shipCoords.every(coord => enemyHitCoords.has(`${coord.x},${coord.y}`));
-      if (allHit && shipCoords.length > 0) {
-        const shipCells = shipCoords.map(coord => enemyBoardCells[coord.y * boardSize + coord.x]).filter(c => c);
-        shipCells.forEach(cell => {
-          cell.classList.remove('ship-hit');
-          cell.classList.add('sunk');
-        });
-        // Промахи вокруг корабля соперника - на вражеской доске (это мои промахи)
-        markAdjacentCellsForOnline(shipCells, enemyBoardCells, myMissImg);
-      }
-    });
-  }
+  myShips.forEach(shipCoords => {
+    const allHit = shipCoords.every(coord => myHitCoords.has(`${coord.x},${coord.y}`));
+    if (allHit && shipCoords.length > 0) {
+      const shipCells = shipCoords.map(coord => b1Cells[coord.y * boardSize + coord.x]).filter(c => c);
+      shipCells.forEach(cell => {
+        cell.classList.remove('ship-hit');
+        cell.classList.add('sunk');
+      });
+      markAdjacentCellsForOnline(shipCells, b1Cells, b2MissImg);
+    }
+  });
 }
 
 // Инвертирует доски: board1 ↔ board2 (нужно для игрока 2)
@@ -2039,27 +1995,13 @@ function handleServerMessage(message) {
           createBoard(board2, board2Cells);
         }
         
-        // Восстанавливаем корабли ОБОИХ игроков
-        // playerNum указывает чей это клиент:
-        // - playerNum=1: мои корабли в ships[0], корабли соперника в ships[1]
-        // - playerNum=2: мои корабли в ships[1], корабли соперника в ships[0]
+        // Восстанавливаем корабли ОБОИХ игроков (как было — без playerNum логики)
         if (message.ships) {
-          if (myPlayerNum === 1) {
-            // Я игрок 1: мои корабли на board1, корабли соперника на board2
-            if (message.ships[0]) {
-              applyReceivedShips(message.ships[0], board1Cells, ships1, board1HitImage);
-            }
-            if (message.ships[1]) {
-              applyReceivedShips(message.ships[1], board2Cells, ships2, board2HitImage);
-            }
-          } else {
-            // Я игрок 2: мои корабли (ships[1]) на board2, корабли соперника (ships[0]) на board1
-            if (message.ships[0]) {
-              applyReceivedShips(message.ships[0], board1Cells, ships2, board2HitImage); // Корабли игрока1 = на board1
-            }
-            if (message.ships[1]) {
-              applyReceivedShips(message.ships[1], board2Cells, ships1, board1HitImage); // Мои корабли = на board2
-            }
+          if (message.ships[0]) {
+            applyReceivedShips(message.ships[0], board1Cells, ships1, board1HitImage);
+          }
+          if (message.ships[1]) {
+            applyReceivedShips(message.ships[1], board2Cells, ships2, board2HitImage);
           }
         }
         
@@ -2069,16 +2011,10 @@ function handleServerMessage(message) {
 // Запускаем игру (это скроет корабли)
         startOnlineGame();
         
-        // Восстанавливаем ходы с инверсией для игрока 2 (чтобы попадания были на правильных досках)
+        // Восстанавливаем ходы (как было — без playerNum)
         if (message.moves) {
           const movesToApply = (myPlayerNum === 2) ? invertBoardMoves(message.moves) : message.moves;
-          // Сохраняем оригинальные moves для restoreSunkState
-          movesToApply._original = message.moves;
-          console.log('=== APPLY MOVES DEBUG ===');
-          console.log('myPlayerNum:', myPlayerNum);
-          console.log('server moves:', message.moves);
-          // Передаем shipsData для восстановления sunk состояния
-          applyAllMoves(movesToApply, 'server', message.ships, board1Cells, board2Cells, board1HitImage, board2HitImage, board1MissImage, board2MissImage, myPlayerNum);
+          applyAllMoves(movesToApply, 'server', message.ships, board1Cells, board2Cells, board1HitImage, board2HitImage, board1MissImage, board2MissImage);
         }
         
         console.log('Game fully restored!');
@@ -2140,11 +2076,9 @@ function handleServerMessage(message) {
         updateShipsCounter();
         startOnlineGame();
 
-        // Применяем ходы - хост это игрок 1, поэтому без инверсии
+        // Применяем ходы (без инверсии, хост это игрок 1)
         if (message.moves) {
-          const movesToApply = message.moves;
-          movesToApply._original = message.moves;
-          applyAllMoves(movesToApply, 'server', message.ships, board1Cells, board2Cells, board1HitImage, board2HitImage, board1MissImage, board2MissImage, myPlayerNum);
+          applyAllMoves(message.moves, 'server', message.ships, board1Cells, board2Cells, board1HitImage, board2HitImage, board1MissImage, board2MissImage);
         }
       }
       break;
