@@ -281,6 +281,18 @@ wss.on('connection', (ws) => {
           break;
         }
 
+        case 'adjacent-miss': {
+          if (!currentRoom || !currentPlayer) return;
+          
+          const boardKey = currentPlayer.playerNum === 1 ? 'board1' : 'board2';
+          if (message.coords) {
+            message.coords.forEach(coord => {
+              currentRoom.moves[boardKey].misses.push({ x: coord.x, y: coord.y });
+            });
+          }
+          break;
+        }
+
         case 'change-turn': {
           if (!currentRoom || !currentPlayer) return;
           
