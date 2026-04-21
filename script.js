@@ -255,7 +255,7 @@ function applyAllMoves(moves, source = 'unknown') {
   }
 }
 
-// Инвертирует доски для игрока 1 (его ходы по сопернику → на доску соперника, ходы соперника по нему → на его доску)
+// Инвертирует доски: board1 ↔ board2 (нужно для игрока 2)
 function invertBoardMoves(moves) {
   if (!moves) return moves;
   return {
@@ -1981,12 +1981,13 @@ function handleServerMessage(message) {
 // Запускаем игру (это скроет корабли)
         startOnlineGame();
         
-        // Восстанавливаем ходы - просто без инверсии + отладка
+        // Восстанавливаем ходы с инверсией для игрока 2 (чтобы попадания были на правильных досках)
         if (message.moves) {
+          const movesToApply = (myPlayerNum === 2) ? invertBoardMoves(message.moves) : message.moves;
           console.log('=== APPLY MOVES DEBUG ===');
           console.log('myPlayerNum:', myPlayerNum);
           console.log('server moves:', message.moves);
-          applyAllMoves(message.moves, 'server');
+          applyAllMoves(movesToApply, 'server');
         }
         
         console.log('Game fully restored!');
