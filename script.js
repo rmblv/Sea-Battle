@@ -260,6 +260,15 @@ function applyAllMoves(moves) {
   restoreMovesFromState(moves);
 }
 
+// Инвертирует доски для игрока 1 (его ходы по сопернику → на доску соперника, ходы соперника по нему → на его доску)
+function invertBoardMoves(moves) {
+  if (!moves) return moves;
+  return {
+    board1: moves.board2,  // ходы по мне (от соперника) → на мою доску board1
+    board2: moves.board1   // мои ходы (по сопернику) → на доску соперника board2
+  };
+}
+
 function setupVideoSkippable(videoElement, popupElement) {
   videoElement.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1977,9 +1986,10 @@ function handleServerMessage(message) {
         // Запускаем игру (это скроет корабли)
         startOnlineGame();
         
-        // Восстанавливаем ВСЕ ходы ПОСЛЕ startOnlineGame (чтобы не затёрлись)
+        // Восстанавливаем ходы с учётом инверсии для игрока 1
         if (message.moves) {
-          applyAllMoves(message.moves);
+          const movesToApply = (myPlayerNum === 1) ? invertBoardMoves(message.moves) : message.moves;
+          applyAllMoves(movesToApply);
         }
         
         console.log('Game fully restored!');
