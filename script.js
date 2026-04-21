@@ -217,39 +217,95 @@ function restoreGameFromState(state) {
 }
 
 
-function applyAllMoves(moves, source = 'unknown') {
+function applyAllMoves(moves, source = 'unknown', shipsData = null, b1Cells = board1Cells, b2Cells = board2Cells, b1HitImg = board1HitImage, b2HitImg = board2HitImage, b1MissImg = board1MissImage, b2MissImg = board2MissImage, playerNum = 1) {
   if (!moves) return;
   console.log('=== APPLY MOVES from:', source);
-  
+
   if (moves.board1) {
     moves.board1.hits.forEach(coord => {
-      const cell = board1Cells[coord.y * boardSize + coord.x];
+      const cell = b1Cells[coord.y * boardSize + coord.x];
       if (cell) {
         cell.classList.add('hit');
-        cell.style.backgroundImage = `url('${board1HitImage}')`;
+        cell.style.backgroundImage = `url('${b1HitImg}')`;
       }
     });
     moves.board1.misses.forEach(coord => {
-      const cell = board1Cells[coord.y * boardSize + coord.x];
+      const cell = b1Cells[coord.y * boardSize + coord.x];
       if (cell) {
         cell.classList.add('miss');
-        cell.style.backgroundImage = `url('${board1MissImage}')`;
+        cell.style.backgroundImage = `url('${b1MissImg}')`;
       }
     });
   }
   if (moves.board2) {
     moves.board2.hits.forEach(coord => {
-      const cell = board2Cells[coord.y * boardSize + coord.x];
+      const cell = b2Cells[coord.y * boardSize + coord.x];
       if (cell) {
         cell.classList.add('hit');
-        cell.style.backgroundImage = `url('${board2HitImage}')`;
+        cell.style.backgroundImage = `url('${b2HitImg}')`;
       }
     });
     moves.board2.misses.forEach(coord => {
-      const cell = board2Cells[coord.y * boardSize + coord.x];
+      const cell = b2Cells[coord.y * boardSize + coord.x];
       if (cell) {
         cell.classList.add('miss');
-        cell.style.backgroundImage = `url('${board2MissImage}')`;
+        cell.style.backgroundImage = `url('${b2MissImg}')`;
+      }
+    });
+  }
+
+  // Восстанавливаем состояние sunk для уничтоженных кораблей
+  if (shipsData && playerNum && source === 'server') {
+    // При reconnect используем оригинальные moves с сервера (до инверсии)
+    // Сейчас moves = movesToApply (возможно инвертированные для игрока 2)
+    // Но мы передаем их как есть - restoreSunkState правильно определит по playerNum
+    // Для игрока 1: его ходы = board1.hits, его корабли = shipsData[0]
+    // Для игрока 2: его ходы = board2.hits (после инверси), его корабли = shipsData[1]
+    // НО! После инверси для игрока2: board1 <- board2 (его ходы), board2 <- board1
+    // Поэтому нужно использовать правильный key:
+    restoreSunkState(shipsData, b1Cells, b2Cells, b1HitImg, b2HitImg, b1MissImg, b2MissImg, playerNum, moves, source);
+  }
+}
+
+function restoreSunkState(shipsData, b1Cells, b2Cells, b1HitImg, b2HitImg, b1MissImg, b2MissImg, playerNum, moves, source) {
+  if (!shipsData || !moves) return;
+
+  // playerNum - это номер игрока на сервере (1 или 2)
+  // source === 'server' означает что moves пришли от сервера при reconnect
+  //
+  // Для игрока 1: его корабли в ships[0], ходы по нему в moves.board1.hits
+  // Для игрока 2: его корабли в ships[1], ходы по нему в moves.board2.hits
+  // НО! Если source === 'server', то для игрока 2 moves уже инвертированы:
+  //   - moves.board1.hits = ходы игрока 1 (по игроку 2)
+  //   - moves.board2.hits = ходы игрока 2 (по игроку 1)
+  // Поэтому для игрока 2 нужно использовать board1 для определения его попаданий
+
+  const myShips = shipsData[playerNum - 1];
+  // Используем всегда board1 как "мою" доску (которая сейчас myBoardCells)
+  const myBoardCells = playerNum === 1 ? b1Cells : b2Cells;
+  const myMissImg = playerNum === 1 ? b2MissImg : b1MissImg;
+
+  // key зависит от playerNum и source
+  let myHitKey;
+  if (source === 'server') {
+    // При reconnect для игрока 2, board2 в moves - это ходы по мне (от игрока1)
+    myHitKey = playerNum === 1 ? 'board1' : 'board2';
+  } else {
+    myHitKey = playerNum === 1 ? 'board1' : 'board2';
+  }
+
+  const myHitCoords = new Set(moves[myHitKey]?.hits?.map(c => `${c.x},${c.y}`) || []);
+
+  if (myShips) {
+    myShips.forEach(shipCoords => {
+      const allHit = shipCoords.every(coord => myHitCoords.has(`${coord.x},${coord.y}`));
+      if (allHit && shipCoords.length > 0) {
+        const shipCells = shipCoords.map(coord => myBoardCells[coord.y * boardSize + coord.x]).filter(c => c);
+        shipCells.forEach(cell => {
+          cell.classList.remove('ship-hit');
+          cell.classList.add('sunk');
+        });
+        markAdjacentCellsForOnline(shipCells, myBoardCells, myMissImg);
       }
     });
   }
@@ -1987,7 +2043,8 @@ function handleServerMessage(message) {
           console.log('=== APPLY MOVES DEBUG ===');
           console.log('myPlayerNum:', myPlayerNum);
           console.log('server moves:', message.moves);
-          applyAllMoves(movesToApply, 'server');
+          // Передаем shipsData для восстановления sunk состояния
+          applyAllMoves(movesToApply, 'server', message.ships, board1Cells, board2Cells, board1HitImage, board2HitImage, board1MissImage, board2MissImage, myPlayerNum);
         }
         
         console.log('Game fully restored!');
