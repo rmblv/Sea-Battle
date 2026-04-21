@@ -158,13 +158,22 @@ wss.on('connection', (ws) => {
                 moves: currentRoom.moves
               }));
               
-              // Уведомить оппонента о возвращении
+              // Уведомить оппонента о возвращении и отправить актуальное состояние
               const opponent = getOpponent(currentRoom, currentPlayer.playerNum);
               if (opponent && opponent.ws && opponent.ws.readyState === WebSocket.OPEN) {
                 opponent.ws.send(JSON.stringify({
                   type: 'player-reconnected',
                   playerNum: currentPlayer.playerNum,
                   playerName: currentPlayer.name
+                }));
+                // Отправляем синхронизированное состояние сопернику
+                opponent.ws.send(JSON.stringify({
+                  type: 'sync-state',
+                  roomId: currentRoom.id,
+                  gameStarted: currentRoom.gameStarted,
+                  currentTurn: currentRoom.currentTurn,
+                  ships: currentRoom.ships,
+                  moves: currentRoom.moves
                 }));
               }
               
