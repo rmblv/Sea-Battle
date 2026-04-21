@@ -216,7 +216,7 @@ function restoreGameFromState(state) {
   console.log('Game restored from localStorage');
 }
 
-// Алиас для обратной совместимости
+
 function applyAllMoves(moves, source = 'unknown') {
   if (!moves) return;
   console.log('=== APPLY MOVES from:', source);
@@ -253,11 +253,6 @@ function applyAllMoves(moves, source = 'unknown') {
       }
     });
   }
-}
-
-// Алиас для обратной совместимости
-function applyAllMoves(moves) {
-  restoreMovesFromState(moves);
 }
 
 // Инвертирует доски для игрока 1 (его ходы по сопернику → на доску соперника, ходы соперника по нему → на его доску)
