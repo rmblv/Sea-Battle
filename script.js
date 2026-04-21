@@ -217,72 +217,42 @@ function restoreGameFromState(state) {
 }
 
 
-function applyAllMoves(moves, source = 'unknown', shipsData = null, b1Cells = board1Cells, b2Cells = board2Cells, b1HitImg = board1HitImage, b2HitImg = board2HitImage, b1MissImg = board1MissImage, b2MissImg = board2MissImage) {
+function applyAllMoves(moves, source = 'unknown') {
   if (!moves) return;
   console.log('=== APPLY MOVES from:', source);
 
   if (moves.board1) {
     moves.board1.hits.forEach(coord => {
-      const cell = b1Cells[coord.y * boardSize + coord.x];
+      const cell = board1Cells[coord.y * boardSize + coord.x];
       if (cell) {
         cell.classList.add('hit');
-        cell.style.backgroundImage = `url('${b1HitImg}')`;
+        cell.style.backgroundImage = `url('${board1HitImage}')`;
       }
     });
     moves.board1.misses.forEach(coord => {
-      const cell = b1Cells[coord.y * boardSize + coord.x];
+      const cell = board1Cells[coord.y * boardSize + coord.x];
       if (cell) {
         cell.classList.add('miss');
-        cell.style.backgroundImage = `url('${b1MissImg}')`;
+        cell.style.backgroundImage = `url('${board1MissImage}')`;
       }
     });
   }
   if (moves.board2) {
     moves.board2.hits.forEach(coord => {
-      const cell = b2Cells[coord.y * boardSize + coord.x];
+      const cell = board2Cells[coord.y * boardSize + coord.x];
       if (cell) {
         cell.classList.add('hit');
-        cell.style.backgroundImage = `url('${b2HitImg}')`;
+        cell.style.backgroundImage = `url('${board2HitImage}')`;
       }
     });
     moves.board2.misses.forEach(coord => {
-      const cell = b2Cells[coord.y * boardSize + coord.x];
+      const cell = board2Cells[coord.y * boardSize + coord.x];
       if (cell) {
         cell.classList.add('miss');
-        cell.style.backgroundImage = `url('${b2MissImg}')`;
+        cell.style.backgroundImage = `url('${board2MissImage}')`;
       }
     });
   }
-
-  // Восстанавливаем sunk состояние для своих кораблей (игрок 1)
-  if (shipsData && source === 'server') {
-    // Создаём копию moves чтобы использовать для restoreSunkState
-    const optMoves = { board1: moves.board1, board2: moves.board2 };
-    restoreSunkState(shipsData, b1Cells, b2Cells, b1MissImg, b2MissImg, optMoves);
-  }
-}
-
-function restoreSunkState(shipsData, b1Cells, b2Cells, b1MissImg, b2MissImg, originalMoves) {
-  if (!shipsData) return;
-  if (!originalMoves) return;
-
-  // Только для игрока 1 (хост): ships[0] vs board1.hits
-  const myShips = shipsData[0];
-  if (!myShips) return;
-
-  const myHitCoords = new Set(originalMoves.board1?.hits?.map(c => `${c.x},${c.y}`) || []);
-
-  myShips.forEach(shipCoords => {
-    const allHit = shipCoords.every(coord => myHitCoords.has(`${coord.x},${coord.y}`));
-    if (allHit && shipCoords.length > 0) {
-      const shipCells = shipCoords.map(coord => b1Cells[coord.y * boardSize + coord.x]).filter(c => c);
-      shipCells.forEach(cell => {
-        cell.classList.remove('ship-hit');
-        cell.classList.add('sunk');
-      });
-      markAdjacentCellsForOnline(shipCells, b1Cells, b2MissImg);
-    }
-  });
 }
 
 // Инвертирует доски: board1 ↔ board2 (нужно для игрока 2)
@@ -2014,7 +1984,7 @@ function handleServerMessage(message) {
         // Восстанавливаем ходы (как было — без playerNum)
         if (message.moves) {
           const movesToApply = (myPlayerNum === 2) ? invertBoardMoves(message.moves) : message.moves;
-          applyAllMoves(movesToApply, 'server', message.ships, board1Cells, board2Cells, board1HitImage, board2HitImage, board1MissImage, board2MissImage);
+          applyAllMoves(movesToApply, 'server');
         }
         
         console.log('Game fully restored!');
@@ -2078,7 +2048,7 @@ function handleServerMessage(message) {
 
         // Применяем ходы (без инверсии, хост это игрок 1)
         if (message.moves) {
-          applyAllMoves(message.moves, 'server', message.ships, board1Cells, board2Cells, board1HitImage, board2HitImage, board1MissImage, board2MissImage);
+          applyAllMoves(message.moves, 'server');
         }
       }
       break;
