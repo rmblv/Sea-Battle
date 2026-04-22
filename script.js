@@ -1814,6 +1814,51 @@ function resetToMainMenu() {
   document.getElementById('mode-select').style.display = 'flex';
 }
 
+function showDisconnectPopup(playerName) {
+  const overlay = document.createElement('div');
+  overlay.id = 'disconnect-popup';
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100vw';
+  overlay.style.height = '100vh';
+  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+  overlay.style.zIndex = '9999';
+  overlay.style.display = 'flex';
+  overlay.style.justifyContent = 'center';
+  overlay.style.alignItems = 'center';
+  overlay.style.flexDirection = 'column';
+
+  overlay.innerHTML = `
+    <div style="color: white; font-size: clamp(32px, 6vw, 48px); font-family: Montserrat; margin-bottom: 20px; text-align: center; text-shadow: 2px 2px 8px black;">
+      ${playerName} покинул игру
+    </div>
+    <div style="color: #aaa; font-size: clamp(18px, 3vw, 24px); font-family: Montserrat; margin-bottom: 40px;">
+      Обновите страницу для новой игры
+    </div>
+    <button id="disconnect-back-btn" style="
+      font-family: Montserrat;
+      padding: 15px 30px;
+      font-size: clamp(18px, 3vw, 24px);
+      background: #4e1a1c;
+      color: white;
+      border: 2px solid #8b0000;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+    ">
+      Вернуться в меню
+    </button>
+  `;
+
+  document.body.appendChild(overlay);
+
+  document.getElementById('disconnect-back-btn').addEventListener('click', () => {
+    overlay.remove();
+    resetToMainMenu();
+  });
+}
+
 function disconnectFromServer() {
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type: 'disconnect' }));
@@ -1959,9 +2004,10 @@ function handleServerMessage(message) {
       break;
 
     case 'player-disconnected':
-      const playerName = message.playerNum === 1 ? player2Name : player1Name;
-      alert(`${playerName} покинул игру. Обновите страницу!`);
-      resetToMainMenu();
+      // Игрок = 1 → ушёл игрок1, показываем player2Name (я остался)
+      // Игрок = 2 → ушёл игрок2, показываем player1Name (я остался)
+      const disconnectedPlayerName = message.playerNum === 1 ? player1Name : player2Name;
+      showDisconnectPopup(disconnectedPlayerName);
       break;
 
 case 'room-reconnected':
@@ -2587,11 +2633,7 @@ function resumeSavedGame(savedState) {
 }
 
 window.addEventListener('load', () => {
-  // Проверяем, есть ли сохранённая игра
-  if (hasSavedGame()) {
-    showResumeGamePrompt();
-  } else if (!isGameModeSelected) {
-    initModeSelect();
-  }
+  // Просто показываем главное меню (сохранённая игра игнорируется)
+  initModeSelect();
   scaleScene();
 });
