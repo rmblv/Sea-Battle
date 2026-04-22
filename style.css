@@ -282,7 +282,7 @@ body {
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.9);
+  background: rgb(78, 26, 28);
   color: white;
   padding: 15px 30px;
   border-radius: 10px;
@@ -290,7 +290,7 @@ body {
   font-size: 18px;
   font-weight: bold;
   z-index: 1000;
-  border: 2px solid #8b0000;
+  border: 2px solid rgb(178, 135, 41);
   display: flex;
   gap: 40px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.5);
@@ -303,17 +303,17 @@ body {
 }
 
 .ships-counter .ship-count {
-  color: gold;
+  color: rgb(178, 135, 41);
   font-size: 24px;
 }
 
 .ships-counter .ship-total {
-  color: #95a5a6;
+  color: #ffffff;
 }
 
 .ships-counter .counter-divider {
   width: 2px;
-  background: gold;
+  background: rgb(178, 135, 41);
 }
 
 .player-input label {
