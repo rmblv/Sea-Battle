@@ -275,6 +275,9 @@ function setupVideoSkippable(videoElement, popupElement) {
 setupVideoSkippable(sinkVideo, videoPopup);
 
 function updateShipsCounter() {
+  // Не показываем счетчик если игра не идёт
+  if (!gameActive && !gameStarted) return;
+
   let counterDiv = document.getElementById('ships-counter');
   if (!counterDiv) {
     counterDiv = document.createElement('div');
@@ -1642,10 +1645,7 @@ function validateShips() {
   console.log('ships2 array:', ships2.length);
 }
 
-  // Создаем счетчик
-  updateShipsCounter();
-
-window.addEventListener('resize', scaleScene);
+  window.addEventListener('resize', scaleScene);
 
 function initModeSelect() {
   const modeSelect = document.getElementById('mode-select');
