@@ -800,8 +800,8 @@ body {
   50% { opacity: 0.5; }
 }
 
-/* Оверлеи отключения и реванша */
-#disconnect-overlay, #rematch-overlay {
+/* Оверлей реванша */
+#rematch-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -814,7 +814,7 @@ body {
   z-index: 2000;
 }
 
-.disconnect-message, .rematch-message {
+.rematch-message {
   background: rgba(0, 0, 0, 0.9);
   padding: 40px 60px;
   border-radius: 20px;
@@ -822,14 +822,14 @@ body {
   text-align: center;
 }
 
-.disconnect-message h2, .rematch-message h2 {
+.rematch-message h2 {
   font-family: Montserrat;
   font-size: clamp(24px, 5vw, 36px);
   color: white;
   margin-bottom: 20px;
 }
 
-.disconnect-message p, .rematch-message p {
+.rematch-message p {
   font-family: Montserrat;
   font-size: clamp(16px, 3vw, 20px);
   color: #aaa;

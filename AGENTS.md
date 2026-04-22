@@ -2,22 +2,22 @@
 
 ## Запуск
 
-- Открыть `index.html` в браузере
-- Нет билда, нет зависимостей, нет сервера
+- Локально: `node server.js` → открыть `http://localhost:8080`
+- Или открыть `index.html` напрямую (без мультиплеера)
+- Deploy: Dockerfile готов для Railway
 
 ## Архитектура
 
-- Один HTML-файл, один CSS, один JS
+- `index.html` + `style.css` + `script.js`
+- `server.js`: HTTP сервер + WebSocket для мультиплеера
 - Состояние игры в памяти: `ships1`, `ships2`, `currentPlayer`, `gameActive`
-- Корабли хранятся в DOM: `cell.dataset.hasShip = 'true'`
+- Корабли в DOM: `cell.dataset.hasShip = 'true'`
 
 ## Известные проблемы
 
-- Дублирование функций в script.js: `showPlacementInfo` (2x), `startGameAfterSetup` (2x)
-- При ручной расстановке: R - поворот, клик - разместить
+- При ручной расстановке: R — поворот, клик — разместить
 
 ## Нет
 
 - Нет тестов
 - Нет линтера
-- Нет билд-команд
