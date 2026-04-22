@@ -288,13 +288,13 @@ function updateShipsCounter() {
 
   counterDiv.innerHTML = `
     <div class="counter-player">
-      <span class="player-name" style="color: #374c36;">${player1Name}:</span>
+      <span class="player-name" style="color: #b3ffb0;">${player1Name}:</span>
       <span class="ship-count">${player1AliveShips}</span>
       <span class="ship-total">/ 10</span>
     </div>
     <div class="counter-divider"></div>
     <div class="counter-player">
-      <span class="player-name" style="color: #2d3b5c;">${player2Name}:</span>
+      <span class="player-name" style="color: #a2beff;">${player2Name}:</span>
       <span class="ship-count">${player2AliveShips}</span>
       <span class="ship-total">/ 10</span>
     </div>
