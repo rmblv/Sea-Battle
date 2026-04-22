@@ -277,6 +277,45 @@ body {
   margin-bottom: 20px;
 }
 
+.ships-counter {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 15px 30px;
+  border-radius: 10px;
+  font-family: Montserrat, sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  z-index: 1000;
+  border: 2px solid #8b0000;
+  display: flex;
+  gap: 40px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.ships-counter .counter-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ships-counter .ship-count {
+  color: gold;
+  font-size: 24px;
+}
+
+.ships-counter .ship-total {
+  color: #95a5a6;
+}
+
+.ships-counter .counter-divider {
+  width: 2px;
+  background: gold;
+}
+
 .player-input label {
   display: block;
   color: white;

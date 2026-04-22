@@ -279,39 +279,24 @@ function updateShipsCounter() {
   if (!counterDiv) {
     counterDiv = document.createElement('div');
     counterDiv.id = 'ships-counter';
-    counterDiv.style.position = 'fixed';
-    counterDiv.style.top = '20px';
-    counterDiv.style.left = '50%';
-    counterDiv.style.transform = 'translateX(-50%)';
-    counterDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-    counterDiv.style.color = 'white';
-    counterDiv.style.padding = '15px 30px';
-    counterDiv.style.borderRadius = '10px';
-    counterDiv.style.fontFamily = 'Montserrat, sans-serif';
-    counterDiv.style.fontSize = '18px';
-    counterDiv.style.fontWeight = 'bold';
-    counterDiv.style.zIndex = '1000';
-    counterDiv.style.border = '2px solid gold';
-    counterDiv.style.display = 'flex';
-    counterDiv.style.gap = '40px';
-    counterDiv.style.boxShadow = '0 4px 15px rgba(0,0,0,0.5)';
+    counterDiv.className = 'ships-counter';
     document.body.appendChild(counterDiv);
   }
-  
+
   const player1AliveShips = ships1.filter(ship => ship.hits < ship.cells.length).length;
   const player2AliveShips = ships2.filter(ship => ship.hits < ship.cells.length).length;
-  
+
   counterDiv.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <span style="color: #4a90e2;">${player1Name}:</span>
-      <span style="color: gold; font-size: 24px;">${player1AliveShips}</span>
-      <span style="color: #95a5a6;">/ 10</span>
+    <div class="counter-player">
+      <span class="player-name" style="color: #4a90e2;">${player1Name}:</span>
+      <span class="ship-count">${player1AliveShips}</span>
+      <span class="ship-total">/ 10</span>
     </div>
-    <div style="width: 2px; background: gold;"></div>
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <span style="color: #e74c3c;">${player2Name}:</span>
-      <span style="color: gold; font-size: 24px;">${player2AliveShips}</span>
-      <span style="color: #95a5a6;">/ 10</span>
+    <div class="counter-divider"></div>
+    <div class="counter-player">
+      <span class="player-name" style="color: #e74c3c;">${player2Name}:</span>
+      <span class="ship-count">${player2AliveShips}</span>
+      <span class="ship-total">/ 10</span>
     </div>
   `;
 }
@@ -1801,6 +1786,10 @@ function resetToMainMenu() {
   isOnlineMode = false;
   currentPlayer = null;
   isMyTurn = false;
+
+  // Удаляем счетчик кораблей
+  const counterDiv = document.getElementById('ships-counter');
+  if (counterDiv) counterDiv.remove();
 
   const gameContainer = document.getElementById('game-container');
   if (gameContainer) gameContainer.style.display = 'none';
