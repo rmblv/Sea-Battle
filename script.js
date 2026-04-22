@@ -1781,19 +1781,37 @@ function connectToServer() {
 
   socket.onclose = (event) => {
     console.log('Disconnected from server');
-    if (gameStarted || isSetupPhase) {
-      showDisconnectOverlay(Date.now());
-    } else if (isOnlineMode) {
-      alert('Соединение потеряно');
-      waitingRoom.style.display = 'none';
-      document.getElementById('mode-select').style.display = 'flex';
-    }
+    resetToMainMenu();
   };
 
   socket.onerror = (error) => {
     console.error('WebSocket error:', error);
     alert('Ошибка подключения к серверу');
   };
+}
+
+function resetToMainMenu() {
+  ships1 = [];
+  ships2 = [];
+  board1Cells = [];
+  board2Cells = [];
+  gameActive = false;
+  gameStarted = false;
+  isSetupPhase = false;
+  isOnlineMode = false;
+  currentPlayer = null;
+  isMyTurn = false;
+
+  const gameContainer = document.getElementById('game-container');
+  if (gameContainer) gameContainer.style.display = 'none';
+
+  const waitingRoom = document.getElementById('waiting-room');
+  if (waitingRoom) waitingRoom.style.display = 'none';
+
+  const disconnectOverlay = document.getElementById('disconnect-overlay');
+  if (disconnectOverlay) disconnectOverlay.style.display = 'none';
+
+  document.getElementById('mode-select').style.display = 'flex';
 }
 
 function disconnectFromServer() {
@@ -1941,116 +1959,16 @@ function handleServerMessage(message) {
       break;
 
     case 'player-disconnected':
-      showDisconnectOverlay(message.disconnectedAt);
+      const playerName = message.playerNum === 1 ? player2Name : player1Name;
+      alert(`${playerName} покинул игру. Обновите страницу!`);
+      resetToMainMenu();
       break;
 
-    case 'room-reconnected':
-      console.log('room-reconnected received:', message);
-      roomId = message.roomId;
-      myPlayerNum = message.playerNum;
-      isOnlineMode = true;
-      isGameModeSelected = true;
-      document.getElementById('disconnect-overlay').style.display = 'none';
-      document.getElementById('waiting-room').style.display = 'none';
-      
-      if (message.gameStarted) {
-        gameStarted = true;
-        gameActive = true;
-        currentPlayer = message.currentTurn;
-        isMyTurn = myPlayerNum === currentPlayer;
-        
-        // Создаем доски
-        if (board1Cells.length === 0) {
-          createBoard(board1, board1Cells);
-          createBoard(board2, board2Cells);
-        }
-        
-        // Восстанавливаем корабли ОБОИХ игроков (как было — без playerNum логики)
-        if (message.ships) {
-          if (message.ships[0]) {
-            applyReceivedShips(message.ships[0], board1Cells, ships1, board1HitImage);
-          }
-          if (message.ships[1]) {
-            applyReceivedShips(message.ships[1], board2Cells, ships2, board2HitImage);
-          }
-        }
-        
-        // Обновляем счетчик кораблей
-        updateShipsCounter();
-        
-// Запускаем игру (это скроет корабли)
-        startOnlineGame();
-        
-        // Восстанавливаем ходы (как было — без playerNum)
-        if (message.moves) {
-          const movesToApply = (myPlayerNum === 2) ? invertBoardMoves(message.moves) : message.moves;
-          applyAllMoves(movesToApply, 'server');
-        }
-        
-        console.log('Game fully restored!');
-      } else {
-        // Игра еще не началась - фаза расстановки
-        gameStarted = false;
-        isSetupPhase = true;
-        currentSetupPlayer = myPlayerNum;
-        
-        // Создаем доски если их нет
-        if (board1Cells.length === 0) {
-          createBoard(board1, board1Cells);
-          createBoard(board2, board2Cells);
-        }
-        
-        // Если корабли уже расставлены - загружаем их
-        if (message.ships && message.ships[myPlayerNum - 1]) {
-          if (myPlayerNum === 1) {
-            applyReceivedShips(message.ships[0], board1Cells, ships1, board1HitImage);
-          } else {
-            applyReceivedShips(message.ships[1], board2Cells, ships2, board2HitImage);
-          }
-        }
-        
-        startOnlineGameSetupForRematch();
-      }
-      break;
-
+case 'room-reconnected':
     case 'player-reconnected':
-      console.log('Player reconnected:', message);
-      document.getElementById('disconnect-overlay').style.display = 'none';
-      showTurnMessage(`${message.playerName || 'Соперник'} вернулся в игру!`);
-      break;
-
     case 'sync-state':
-      console.log('Sync state received:', message);
-      // Восстанавливаем состояние игры для хоста (когда соперник переподключился)
-      if (message.gameStarted) {
-        gameActive = true;
-        currentPlayer = message.currentTurn;
-        isMyTurn = myPlayerNum === currentPlayer;
-
-        // Создаем доски если их нет
-        if (board1Cells.length === 0) {
-          createBoard(board1, board1Cells);
-          createBoard(board2, board2Cells);
-        }
-
-        // Применяем корабли - для хоста (игрок 1): ships[0] → board1, ships[1] → board2
-        if (message.ships) {
-          if (message.ships[0]) {
-            applyReceivedShips(message.ships[0], board1Cells, ships1, board1HitImage);
-          }
-          if (message.ships[1]) {
-            applyReceivedShips(message.ships[1], board2Cells, ships2, board2HitImage);
-          }
-        }
-
-        updateShipsCounter();
-        startOnlineGame();
-
-        // Применяем ходы (без инверсии, хост это игрок 1)
-        if (message.moves) {
-          applyAllMoves(message.moves, 'server');
-        }
-      }
+      alert('Соединение прервано. Обновите страницу!');
+      resetToMainMenu();
       break;
 
     case 'rematch-request':
@@ -2333,7 +2251,12 @@ function handleOpponentMove(message) {
           c.classList.add('sunk');
         });
         markAdjacentCellsForOnline(ship.cells, myCells, missImg);
-        
+
+        videoPopup.style.display = 'flex';
+        sinkVideo.currentTime = 0;
+        sinkVideo.play();
+        sinkVideo.onended = () => { videoPopup.style.display = 'none'; };
+
         if (areAllShipsSunk(myShips)) {
           gameActive = false;
           const winnerName = myPlayerNum === 1 ? player2Name : player1Name;
@@ -2375,19 +2298,28 @@ function markAdjacentCellsForOnline(shipCells, boardCells, missImg) {
 
   let markedCount = 0;
 
+  console.log('markAdjacentCellsForOnline:', { minX, maxX, minY, maxY, missImg });
+
   for (let y = minY; y <= maxY; y++) {
     for (let x = minX; x <= maxX; x++) {
       const cell = boardCells[y * boardSize + x];
+      if (!cell) {
+        console.log('No cell at:', y, x);
+        continue;
+      }
       const isShipCell = shipCoords.some(coord => coord.x === x && coord.y === y);
 
       if (!isShipCell && !cell.classList.contains('hit') && !cell.classList.contains('miss')) {
         cell.classList.add('miss');
         cell.style.backgroundImage = `url('${missImg}')`;
+        console.log('Marked miss at:', x, y);
         markedCount++;
       }
     }
   }
-  
+
+  console.log('Total marked:', markedCount);
+
   if (markedCount > 0 && isOnlineMode) {
     saveGameState();
   }
